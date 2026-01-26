@@ -7,7 +7,8 @@ const nextConfig = {
   env: {
     CUSTOM_KEY: 'multilingual-mandi',
   },
-  output: 'standalone',
+  trailingSlash: true,
+  output: 'export',
 }
 
 module.exports = nextConfig
