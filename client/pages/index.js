@@ -38,7 +38,9 @@ export default function Home() {
   })
 
   // Allow exploration mode - all pages accessible without auth
-  const isExplorationMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+  // Enable by default for production deployments to allow seamless exploration
+  const isExplorationMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true' ||
+                           process.env.NODE_ENV === 'production'
 
   useEffect(() => {
     setMounted(true)

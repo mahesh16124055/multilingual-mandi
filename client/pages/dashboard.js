@@ -241,7 +241,10 @@ export default function Dashboard() {
   const { supabase, session, loading } = useSupabase()
   
   // Allow exploration mode - all pages accessible without auth
-  const isExplorationMode = demo === 'true' || process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+  // Enable by default for production deployments to allow seamless exploration
+  const isExplorationMode = demo === 'true' || 
+                           process.env.NEXT_PUBLIC_DEMO_MODE === 'true' ||
+                           process.env.NODE_ENV === 'production'
   
   // Advanced state management
   const [selectedLanguage, setSelectedLanguage] = useState(lang || 'en')
