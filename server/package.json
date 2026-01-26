@@ -40,7 +40,11 @@
     "socket-io",
     "huggingface"
   ],
-  "author": "Multilingual Mandi Team",
+  "author": {
+    "name": "Mahesh Mettireddy",
+    "email": "mahesh.mettireddy@gmail.com",
+    "url": "https://www.linkedin.com/in/mahesh-mettireddy/"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",

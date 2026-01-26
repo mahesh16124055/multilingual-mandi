@@ -3,7 +3,13 @@
     "name": "Multilingual Mandi",
     "description": "AI-powered multilingual marketplace for Indian vendors and buyers",
     "version": "1.0.0",
-    "type": "full-stack-web-application"
+    "type": "full-stack-web-application",
+    "author": {
+      "name": "Mahesh Mettireddy",
+      "email": "mahesh.mettireddy@gmail.com",
+      "linkedin": "https://www.linkedin.com/in/mahesh-mettireddy/",
+      "github": "https://github.com/mahesh16124055"
+    }
   },
   "kiro": {
     "version": "1.0.0",

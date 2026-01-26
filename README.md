@@ -430,12 +430,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Hugging Face** for AI translation models
 - **Supabase** for the backend infrastructure
 
-## 📞 Support
+## 📞 Support & Contact
 
-- 📧 Email: support@multilingualmandi.com
-- 💬 Discord: [Join our community](https://discord.gg/multilingualmandi)
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/multilingual-mandi/issues)
-- 📖 Docs: [Documentation](https://docs.multilingualmandi.com)
+- 📧 **Email**: mahesh.mettireddy@gmail.com
+- 💼 **LinkedIn**: [Mahesh Mettireddy](https://www.linkedin.com/in/mahesh-mettireddy/)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/mahesh16124055/multilingual-mandi/issues)
+- 📖 **Documentation**: [Project Documentation](https://github.com/mahesh16124055/multilingual-mandi#readme)
+- 🌟 **Repository**: [GitHub Repository](https://github.com/mahesh16124055/multilingual-mandi)
 
 ## 🌟 Star History
 

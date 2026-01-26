@@ -474,6 +474,18 @@ export default function Home() {
               <span>{getTranslation(selectedLanguage, 'madeWith')} </span>
               <span className="text-saffron font-medium">{getTranslation(selectedLanguage, 'viksitBharat')}</span>
             </div>
+            
+            <div className="mt-4 text-xs text-gray-400">
+              <span>Built by </span>
+              <a 
+                href="https://www.linkedin.com/in/mahesh-mettireddy/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-saffron hover:text-green transition-colors duration-200"
+              >
+                Mahesh Mettireddy
+              </a>
+            </div>
           </div>
         </footer>
 
