@@ -1,7 +1,7 @@
 {
   "name": "multilingual-mandi-server",
   "version": "1.0.0",
-  "description": "Backend server for Multilingual Mandi",
+  "description": "Backend server for Multilingual Mandi - AI translation, smart pricing, and real-time communication",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -9,7 +9,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:translation": "node test-translation.js"
+    "test:translation": "node test-translation.js",
+    "test:services": "jest --testPathPattern=services"
   },
   "dependencies": {
     "@huggingface/inference": "^4.13.10",
@@ -32,8 +33,21 @@
     "multilingual",
     "ai",
     "agriculture",
-    "india"
+    "india",
+    "translation",
+    "smart-pricing",
+    "real-time-chat",
+    "socket-io",
+    "huggingface"
   ],
   "author": "Multilingual Mandi Team",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mahesh16124055/multilingual-mandi.git"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
 }

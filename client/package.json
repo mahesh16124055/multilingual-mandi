@@ -1,6 +1,7 @@
 {
   "name": "multilingual-mandi-client",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "Frontend application for Multilingual Mandi - AI-powered marketplace with exploration mode",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,7 +10,8 @@
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:components": "jest --testPathPattern=components"
   },
   "dependencies": {
     "next": "^15.1.0",
@@ -39,5 +41,16 @@
     "@testing-library/react": "^14.1.2",
     "@testing-library/jest-dom": "^6.2.1",
     "@testing-library/user-event": "^14.5.2"
-  }
+  },
+  "keywords": [
+    "multilingual",
+    "marketplace",
+    "react",
+    "nextjs",
+    "indian-languages",
+    "exploration-mode",
+    "ai-translation"
+  ],
+  "author": "Multilingual Mandi Team",
+  "license": "MIT"
 }
