@@ -64,13 +64,17 @@ const MessageBubble = ({ message, isOwn, language, onReply, onReact, onSpeak, on
     >
       <div className={`max-w-xs lg:max-w-md relative ${isOwn ? 'ml-auto' : 'mr-auto'}`}>
         {/* Message Bubble */}
-        <div className={`relative px-6 py-4 rounded-3xl shadow-lg ${
-          isOwn
-            ? 'bg-gradient-to-r from-saffron to-orange-600 ml-4'
-            : 'bg-white mr-4 border border-gray-200'
-        }`} style={{
-          color: isOwn ? '#ffffff' : '#1f2937'
-        }}>
+        <div 
+          className={`relative px-6 py-4 rounded-3xl shadow-lg ${
+            isOwn
+              ? 'ml-4 chat-message-own'
+              : 'mr-4 border border-gray-200 chat-message-other'
+          }`}
+          style={{
+            backgroundColor: isOwn ? '#f97316 !important' : '#ffffff !important',
+            color: isOwn ? '#ffffff !important' : '#000000 !important'
+          }}
+        >
           {/* Sender Info */}
           <div className="flex items-center space-x-2 mb-2">
             <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
@@ -105,11 +109,22 @@ const MessageBubble = ({ message, isOwn, language, onReply, onReact, onSpeak, on
 
           {/* Message Content */}
           <div className="space-y-3">
-            <p className={`text-sm leading-relaxed`} style={{
-              color: isOwn ? '#ffffff' : '#1f2937'
-            }}>
+            <div 
+              style={{
+                color: isOwn ? '#FFFFFF !important' : '#000000 !important',
+                fontWeight: 'bold !important',
+                fontSize: '16px !important',
+                lineHeight: '1.5 !important',
+                textShadow: isOwn ? '2px 2px 4px rgba(0,0,0,0.8) !important' : '1px 1px 2px rgba(255,255,255,0.8) !important',
+                backgroundColor: 'transparent !important',
+                padding: '4px 0 !important',
+                display: 'block !important',
+                zIndex: '999 !important',
+                position: 'relative !important'
+              }}
+            >
               {message.message}
-            </p>
+            </div>
 
             {/* Translation */}
             {message.translatedMessage && 
@@ -125,11 +140,22 @@ const MessageBubble = ({ message, isOwn, language, onReply, onReact, onSpeak, on
                     {language === 'hi' ? 'अनुवाद' : 'Translation'}
                   </span>
                 </div>
-                <p className={`text-sm`} style={{
-                  color: isOwn ? 'rgba(255, 255, 255, 0.9)' : '#374151'
-                }}>
+                <div 
+                  style={{
+                    color: isOwn ? '#FFFFFF !important' : '#333333 !important',
+                    fontWeight: '600 !important',
+                    fontSize: '14px !important',
+                    lineHeight: '1.4 !important',
+                    textShadow: isOwn ? '2px 2px 4px rgba(0,0,0,0.8) !important' : '1px 1px 2px rgba(255,255,255,0.8) !important',
+                    backgroundColor: 'transparent !important',
+                    padding: '4px 0 !important',
+                    display: 'block !important',
+                    zIndex: '999 !important',
+                    position: 'relative !important'
+                  }}
+                >
                   {message.translatedMessage}
-                </p>
+                </div>
               </div>
             )}
 
@@ -346,9 +372,10 @@ export default function ChatInterface({
   const [demoTyping, setDemoTyping] = useState(false)
   const [demoSuggestion, setDemoSuggestion] = useState(null)
   
-  // Use demo data if no backend connection
-  const messages = propMessages?.length > 0 ? propMessages : demoMessages
-  const isConnected = propIsConnected !== undefined ? propIsConnected : demoConnected
+  // Use demo data if no real backend connection
+  const hasRealBackend = propIsConnected && propOnSendMessage && propMessages && propMessages.length > 0
+  const messages = hasRealBackend ? propMessages : demoMessages
+  const isConnected = true // Always enable input in demo mode
   const negotiationSuggestion = propNegotiationSuggestion || demoSuggestion
   const setNegotiationSuggestion = propSetNegotiationSuggestion || setDemoSuggestion
   
@@ -386,62 +413,58 @@ export default function ChatInterface({
   
   // Demo send message function
   const demoSendMessage = () => {
+    console.log('🚀 Demo send message called!', currentMessage)
     if (!currentMessage.trim()) return
     
     const newMessage = {
       id: Date.now(),
       message: currentMessage,
-      translatedMessage: mockTranslate(currentMessage, language, language === 'hi' ? 'en' : 'hi'),
+      translatedMessage: `[Hindi] ${currentMessage}`,
       sender: userType,
       timestamp: new Date(),
       status: "sent",
       language: language
     }
     
+    console.log('📝 Adding new message:', newMessage)
     setDemoMessages(prev => [...prev, newMessage])
     setCurrentMessage('')
     
-    // Simulate typing and response
+    // Immediate response for testing
     setTimeout(() => {
-      setDemoTyping(true)
-      setTimeout(() => {
-        setDemoTyping(false)
-        
-        const otherUserType = userType === 'vendor' ? 'buyer' : 'vendor'
-        const responses = MOCK_RESPONSES[otherUserType]
-        const randomResponse = responses[Math.floor(Math.random() * responses.length)]
-        
-        const responseMessage = {
-          id: Date.now() + 1,
-          message: randomResponse,
-          translatedMessage: mockTranslate(randomResponse, 'en', language),
-          sender: otherUserType,
-          timestamp: new Date(),
-          status: "delivered",
-          language: otherUserType === 'vendor' ? 'hi' : 'en'
-        }
-        
-        setDemoMessages(prev => [...prev, responseMessage])
-        
-        // Occasionally show AI suggestion
-        if (Math.random() > 0.7) {
-          setTimeout(() => {
-            setDemoSuggestion({
-              suggestion: language === 'hi' 
-                ? "क्या आप बल्क ऑर्डर के लिए डिस्काउंट दे सकते हैं?"
-                : "Can you offer a discount for bulk orders?",
-              reason: language === 'hi'
-                ? "बड़े ऑर्डर के लिए बेहतर दाम मिल सकते हैं"
-                : "Better prices are often available for larger orders",
-              priority: "medium"
-            })
-          }, 2000)
-        }
-      }, 2000)
-    }, 500)
+      const otherUserType = userType === 'vendor' ? 'buyer' : 'vendor'
+      const responses = [
+        "Thank you for your message!",
+        "That sounds good to me.",
+        "Let me check the price for you.",
+        "I can help you with that."
+      ]
+      const randomResponse = responses[Math.floor(Math.random() * responses.length)]
+      
+      const responseMessage = {
+        id: Date.now() + 1,
+        message: randomResponse,
+        translatedMessage: `[Hindi] ${randomResponse}`,
+        sender: otherUserType,
+        timestamp: new Date(),
+        status: "delivered",
+        language: 'en'
+      }
+      
+      console.log('🤖 Adding response message:', responseMessage)
+      setDemoMessages(prev => [...prev, responseMessage])
+    }, 1000) // Quick response
   }
   
-  const onSendMessage = propOnSendMessage || demoSendMessage
+  const onSendMessage = hasRealBackend ? propOnSendMessage : demoSendMessage
+  
+  console.log('Chat Interface Debug:', {
+    hasRealBackend,
+    propIsConnected,
+    propOnSendMessage: !!propOnSendMessage,
+    propMessages: propMessages?.length || 0,
+    usingFunction: hasRealBackend ? 'real' : 'demo'
+  })
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   const [replyingTo, setReplyingTo] = useState(null)
@@ -459,6 +482,7 @@ export default function ChatInterface({
 
   // Handle typing indicator
   const handleInputChange = useCallback((e) => {
+    console.log('Input change:', e.target.value)
     setCurrentMessage(e.target.value)
     if (onTyping) {
       onTyping()
@@ -466,11 +490,30 @@ export default function ChatInterface({
   }, [setCurrentMessage, onTyping])
 
   const handleSend = useCallback(() => {
+    console.log('🚀 Handle send called:', currentMessage)
+    
+    // If no message, add a test message
+    if (!currentMessage.trim()) {
+      console.log('No message, adding test message')
+      const testMessage = {
+        id: Date.now(),
+        message: "Test message from send button",
+        translatedMessage: "भेजें बटन से परीक्षण संदेश",
+        sender: userType,
+        timestamp: new Date(),
+        status: "sent",
+        language: language
+      }
+      setDemoMessages(prev => [...prev, testMessage])
+      return
+    }
+    
     if (currentMessage.trim() && onSendMessage) {
+      console.log('Calling onSendMessage')
       onSendMessage()
       setReplyingTo(null)
     }
-  }, [currentMessage, onSendMessage])
+  }, [currentMessage, onSendMessage, userType, language, setDemoMessages])
 
   const handleKeyPress = useCallback((e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -546,7 +589,7 @@ export default function ChatInterface({
           
           <div className="flex items-center space-x-3">
             {/* Demo Mode Indicator */}
-            {!propIsConnected && (
+            {!hasRealBackend && (
               <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
                 {language === 'hi' ? 'डेमो मोड' : 'Demo Mode'}
               </div>
@@ -655,6 +698,112 @@ export default function ChatInterface({
 
       {/* Input Area */}
       <div className="bg-white border-t border-gray-200 p-6">
+        {/* Simple Test Chat Buttons */}
+        <div className="mb-4 flex flex-wrap gap-2">
+          <button
+            onClick={() => {
+              const testMessage = {
+                id: Date.now(),
+                message: "Hello! I'm interested in buying tomatoes.",
+                translatedMessage: "नमस्ते! मुझे टमाटर खरीदने में दिलचस्पी है।",
+                sender: userType,
+                timestamp: new Date(),
+                status: "sent",
+                language: language
+              }
+              setDemoMessages(prev => [...prev, testMessage])
+              
+              // Auto response
+              setTimeout(() => {
+                const response = {
+                  id: Date.now() + 1,
+                  message: "Great! I have fresh tomatoes. ₹40 per kg.",
+                  translatedMessage: "बहुत बढ़िया! मेरे पास ताजे टमाटर हैं। ₹40 प्रति किलो।",
+                  sender: userType === 'vendor' ? 'buyer' : 'vendor',
+                  timestamp: new Date(),
+                  status: "delivered",
+                  language: 'en'
+                }
+                setDemoMessages(prev => [...prev, response])
+              }, 1000)
+            }}
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm"
+          >
+            💬 Test Chat 1
+          </button>
+          
+          <button
+            onClick={() => {
+              const testMessage = {
+                id: Date.now(),
+                message: "What's your best price for 10kg onions?",
+                translatedMessage: "10 किलो प्याज के लिए आपका सबसे अच्छा दाम क्या है?",
+                sender: userType,
+                timestamp: new Date(),
+                status: "sent",
+                language: language
+              }
+              setDemoMessages(prev => [...prev, testMessage])
+              
+              // Auto response
+              setTimeout(() => {
+                const response = {
+                  id: Date.now() + 1,
+                  message: "For 10kg onions, I can give ₹25 per kg. Total ₹250.",
+                  translatedMessage: "10 किलो प्याज के लिए, मैं ₹25 प्रति किलो दे सकता हूं। कुल ₹250।",
+                  sender: userType === 'vendor' ? 'buyer' : 'vendor',
+                  timestamp: new Date(),
+                  status: "delivered",
+                  language: 'en'
+                }
+                setDemoMessages(prev => [...prev, response])
+              }, 1500)
+            }}
+            className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm"
+          >
+            🥕 Test Chat 2
+          </button>
+          
+          <button
+            onClick={() => {
+              const testMessage = {
+                id: Date.now(),
+                message: "Can you deliver to my location?",
+                translatedMessage: "क्या आप मेरे स्थान पर डिलीवर कर सकते हैं?",
+                sender: userType,
+                timestamp: new Date(),
+                status: "sent",
+                language: language
+              }
+              setDemoMessages(prev => [...prev, testMessage])
+              
+              // Auto response
+              setTimeout(() => {
+                const response = {
+                  id: Date.now() + 1,
+                  message: "Yes! Free delivery for orders above ₹500. Where is your location?",
+                  translatedMessage: "हां! ₹500 से अधिक के ऑर्डर के लिए मुफ्त डिलीवरी। आपका स्थान कहां है?",
+                  sender: userType === 'vendor' ? 'buyer' : 'vendor',
+                  timestamp: new Date(),
+                  status: "delivered",
+                  language: 'en'
+                }
+                setDemoMessages(prev => [...prev, response])
+              }, 1200)
+            }}
+            className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors text-sm"
+          >
+            🚚 Test Chat 3
+          </button>
+          
+          <button
+            onClick={() => setDemoMessages(DEMO_MESSAGES)}
+            className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors text-sm"
+          >
+            🔄 Reset Chat
+          </button>
+        </div>
+
         <div className="flex items-end space-x-4">
           <div className="flex-1">
             <div className="relative">
@@ -675,7 +824,6 @@ export default function ChatInterface({
                   maxHeight: '120px'
                 }}
                 rows="1"
-                disabled={!isConnected}
               />
               
               {/* Input Actions */}
@@ -697,12 +845,35 @@ export default function ChatInterface({
             </div>
           </div>
           
+          {/* Main Send Button */}
           <button
             onClick={handleSend}
-            disabled={!currentMessage.trim() || !isConnected}
-            className="btn-primary p-4"
+            className="bg-orange-500 hover:bg-orange-600 text-white p-4 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center min-w-[60px]"
+            style={{
+              backgroundColor: '#f97316 !important',
+              color: '#ffffff !important',
+              border: 'none !important',
+              display: 'flex !important',
+              visibility: 'visible !important'
+            }}
           >
             <Send className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Backup Send Button */}
+        <div className="mt-2 flex justify-end">
+          <button
+            onClick={handleSend}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium"
+            style={{
+              backgroundColor: '#3b82f6 !important',
+              color: '#ffffff !important',
+              display: 'block !important',
+              visibility: 'visible !important'
+            }}
+          >
+            📤 SEND MESSAGE
           </button>
         </div>
 

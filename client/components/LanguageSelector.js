@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, Globe, Check } from 'lucide-react'
 
 const languages = [
-  { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧' },
+  { code: 'en', name: 'English', nativeName: 'English', flag: null },
   { code: 'hi', name: 'Hindi', nativeName: 'हिंदी', flag: '🇮🇳' },
   { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்', flag: '🇮🇳' },
   { code: 'te', name: 'Telugu', nativeName: 'తెలుగు', flag: '🇮🇳' },
@@ -27,7 +27,7 @@ export default function LanguageSelector({ selectedLanguage, onLanguageChange })
       >
         <Globe className="w-4 h-4 text-gray-600 group-hover:text-saffron transition-colors" />
         <div className="flex items-center space-x-2">
-          <span className="text-lg">{selectedLang.flag}</span>
+          {selectedLang.flag && <span className="text-lg">{selectedLang.flag}</span>}
           <span className="text-gray-900 font-medium group-hover:text-saffron transition-colors text-sm">
             {selectedLang.nativeName}
           </span>
@@ -74,7 +74,7 @@ export default function LanguageSelector({ selectedLanguage, onLanguageChange })
                     whileHover={{ x: 4 }}
                   >
                     <div className="flex items-center space-x-3">
-                      <span className="text-lg">{language.flag}</span>
+                      {language.flag && <span className="text-lg">{language.flag}</span>}
                       <div>
                         <div className="font-medium">{language.nativeName}</div>
                         <div className="text-xs text-gray-500">{language.name}</div>

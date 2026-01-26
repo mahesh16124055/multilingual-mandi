@@ -7,8 +7,9 @@ const nextConfig = {
   env: {
     CUSTOM_KEY: 'multilingual-mandi',
   },
-  trailingSlash: true,
-  output: 'export',
+  
+  // Fix workspace root issue
+  outputFileTracingRoot: __dirname,
 }
 
 module.exports = nextConfig

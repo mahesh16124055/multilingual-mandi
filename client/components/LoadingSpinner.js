@@ -44,7 +44,7 @@ export default function LoadingSpinner({
 
 export function PageLoader({ message = 'Loading Multilingual Mandi...' }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-saffron-50 via-white to-bharat-green-50 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center">
       <div className="text-center">
         <LoadingSpinner size="large" message={message} />
         <motion.div

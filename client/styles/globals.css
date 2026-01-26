@@ -68,6 +68,441 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Mobile-first responsive design improvements */
+@media (max-width: 768px) {
+  .card-premium {
+    padding: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  .btn-primary, .btn-secondary, .btn-outline {
+    padding: 0.5rem 1rem !important;
+    font-size: 0.875rem !important;
+  }
+  
+  .grid {
+    gap: 1rem !important;
+  }
+  
+  .space-y-6 > * + * {
+    margin-top: 1.5rem !important;
+  }
+  
+  .text-2xl {
+    font-size: 1.5rem !important;
+  }
+  
+  .text-xl {
+    font-size: 1.25rem !important;
+  }
+  
+  /* Flag responsive sizing */
+  .flag-container {
+    transform: scale(0.9);
+  }
+  
+  /* Icon responsive sizing */
+  .modern-icon {
+    transform: scale(0.85);
+  }
+}
+
+@media (max-width: 640px) {
+  .card-premium {
+    padding: 0.75rem !important;
+  }
+  
+  .btn-primary, .btn-secondary, .btn-outline {
+    padding: 0.375rem 0.75rem !important;
+    font-size: 0.75rem !important;
+  }
+  
+  .grid {
+    gap: 0.75rem !important;
+  }
+  
+  .space-y-6 > * + * {
+    margin-top: 1rem !important;
+  }
+  
+  /* Flag responsive sizing for small screens */
+  .flag-container {
+    transform: scale(0.8);
+  }
+  
+  /* Icon responsive sizing for small screens */
+  .modern-icon {
+    transform: scale(0.75);
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .flag-container {
+    transform: scale(0.95);
+  }
+  
+  .modern-icon {
+    transform: scale(0.9);
+  }
+}
+
+/* Desktop optimizations */
+@media (min-width: 1025px) {
+  .flag-container {
+    transform: scale(1);
+  }
+  
+  .modern-icon {
+    transform: scale(1);
+  }
+}
+
+/* Improved mobile navigation */
+.mobile-nav-item {
+  @apply flex items-center justify-center p-3 rounded-xl transition-all duration-200;
+}
+
+.mobile-nav-item.active {
+  @apply bg-gradient-to-r from-orange-100 to-green-100 text-gray-900 border border-orange-300;
+}
+
+.mobile-nav-item:not(.active) {
+  @apply text-gray-600 hover:text-gray-900 hover:bg-gray-50;
+}
+
+/* Enhanced responsive grids */
+.responsive-grid {
+  @apply grid gap-4;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+@media (max-width: 640px) {
+  .responsive-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
+
+/* Mobile-optimized sidebar */
+@media (max-width: 1024px) {
+  .sidebar-mobile {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  .sidebar-mobile.open {
+    transform: translateX(0);
+  }
+}
+
+/* Realistic 3D Flag Wave Effects */
+@keyframes flagWave3D {
+  0%, 100% { 
+    transform: rotateY(0deg) rotateX(0deg) scaleX(1);
+    clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+  }
+  25% { 
+    transform: rotateY(3deg) rotateX(2deg) scaleX(1.02);
+    clip-path: polygon(0% 5%, 100% 0%, 100% 95%, 0% 100%);
+  }
+  50% { 
+    transform: rotateY(-2deg) rotateX(-1deg) scaleX(0.98);
+    clip-path: polygon(0% 0%, 100% 3%, 100% 100%, 0% 97%);
+  }
+  75% { 
+    transform: rotateY(1deg) rotateX(1deg) scaleX(1.01);
+    clip-path: polygon(0% 2%, 100% 0%, 100% 98%, 0% 100%);
+  }
+}
+
+@keyframes clothFold {
+  0%, 100% { 
+    transform: translateZ(0px) rotateX(0deg);
+    box-shadow: inset 0 0 0 rgba(0,0,0,0);
+  }
+  33% { 
+    transform: translateZ(5px) rotateX(2deg);
+    box-shadow: inset -5px 0 10px rgba(0,0,0,0.1);
+  }
+  66% { 
+    transform: translateZ(-3px) rotateX(-1deg);
+    box-shadow: inset 3px 0 8px rgba(0,0,0,0.08);
+  }
+}
+
+@keyframes windRipple {
+  0%, 100% { 
+    transform: translateX(0) scaleY(1) skewX(0deg);
+  }
+  25% { 
+    transform: translateX(3px) scaleY(1.02) skewX(1deg);
+  }
+  50% { 
+    transform: translateX(-2px) scaleY(0.98) skewX(-0.5deg);
+  }
+  75% { 
+    transform: translateX(1px) scaleY(1.01) skewX(0.5deg);
+  }
+}
+
+@keyframes fabricTexture {
+  0%, 100% { 
+    background-position: 0px 0px;
+    opacity: 0.3;
+  }
+  50% { 
+    background-position: 10px 10px;
+    opacity: 0.5;
+  }
+}
+
+/* Enhanced Flag Cloth Classes */
+.flag-cloth-saffron {
+  animation: flagWave3D 4s ease-in-out infinite, clothFold 3s ease-in-out infinite;
+  background: linear-gradient(135deg, #FF9933 0%, #FF8C00 50%, #FF9933 100%);
+  position: relative;
+}
+
+.flag-cloth-white {
+  animation: flagWave3D 3.5s ease-in-out infinite 0.5s, windRipple 4s ease-in-out infinite;
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 50%, #FFFFFF 100%);
+  position: relative;
+}
+
+.flag-cloth-green {
+  animation: flagWave3D 3.8s ease-in-out infinite 1s, clothFold 3.2s ease-in-out infinite 0.8s;
+  background: linear-gradient(135deg, #138808 0%, #228B22 50%, #138808 100%);
+  position: relative;
+}
+
+.flag-cloth-saffron::before,
+.flag-cloth-white::before,
+.flag-cloth-green::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 25% 25%, rgba(255,255,255,0.2) 1px, transparent 2px),
+    radial-gradient(circle at 75% 75%, rgba(0,0,0,0.1) 1px, transparent 2px);
+  background-size: 8px 8px, 6px 6px;
+  animation: fabricTexture 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Realistic Cloth Shadows */
+.cloth-shadow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, 
+    rgba(0,0,0,0.1) 0%, 
+    transparent 20%, 
+    rgba(0,0,0,0.05) 40%, 
+    transparent 60%, 
+    rgba(0,0,0,0.1) 80%, 
+    transparent 100%
+  );
+  animation: windRipple 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* 3D Flag Perspective */
+.flag-3d-container {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+.flag-3d-container .flag-stripe {
+  transform-origin: left center;
+  backface-visibility: hidden;
+}
+
+/* Enhanced Chakra Integration */
+.chakra-on-flag {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  filter: drop-shadow(0 0 10px rgba(30, 64, 175, 0.5));
+}
+
+/* Patriotic Glow Animation */
+@keyframes patrioticGlow {
+  0%, 100% { 
+    box-shadow: 
+      0 0 20px rgba(255, 153, 51, 0.3),
+      0 0 40px rgba(19, 136, 8, 0.2),
+      inset 0 0 20px rgba(255, 255, 255, 0.1);
+  }
+  50% { 
+    box-shadow: 
+      0 0 30px rgba(255, 153, 51, 0.5),
+      0 0 60px rgba(19, 136, 8, 0.4),
+      inset 0 0 30px rgba(255, 255, 255, 0.2);
+  }
+}
+
+.patriotic-glow {
+  animation: patrioticGlow 4s ease-in-out infinite;
+}
+@keyframes clothWave {
+  0%, 100% { 
+    transform: translateY(0px) scaleY(1);
+  }
+  25% { 
+    transform: translateY(-2px) scaleY(1.02);
+  }
+  50% { 
+    transform: translateY(0px) scaleY(0.98);
+  }
+  75% { 
+    transform: translateY(2px) scaleY(1.01);
+  }
+}
+
+@keyframes clothRipple {
+  0% { 
+    transform: translateX(0) skewX(0deg);
+  }
+  25% { 
+    transform: translateX(1px) skewX(0.5deg);
+  }
+  50% { 
+    transform: translateX(0) skewX(0deg);
+  }
+  75% { 
+    transform: translateX(-1px) skewX(-0.5deg);
+  }
+  100% { 
+    transform: translateX(0) skewX(0deg);
+  }
+}
+
+@keyframes flagGlow {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(255, 153, 51, 0.3), 0 0 40px rgba(19, 136, 8, 0.2);
+  }
+  50% { 
+    box-shadow: 0 0 30px rgba(255, 153, 51, 0.5), 0 0 60px rgba(19, 136, 8, 0.4);
+  }
+}
+
+@keyframes chakraGlow {
+  0%, 100% { 
+    filter: drop-shadow(0 0 10px rgba(30, 64, 175, 0.5));
+  }
+  50% { 
+    filter: drop-shadow(0 0 20px rgba(30, 64, 175, 0.8));
+  }
+}
+
+@keyframes sparkle {
+  0%, 100% { 
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+  50% { 
+    opacity: 1;
+    transform: scale(1) rotate(180deg);
+  }
+}
+
+/* Enhanced Chakra Glow Effect */
+.chakra-glow {
+  position: relative;
+  display: inline-block;
+}
+
+.chakra-glow::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  background: radial-gradient(circle, rgba(255, 153, 51, 0.1) 0%, rgba(19, 136, 8, 0.1) 100%);
+  border-radius: 50%;
+  animation: flagGlow 3s ease-in-out infinite;
+  z-index: -1;
+}
+
+.chakra-glow::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  background: radial-gradient(circle, #FFD700, #FFA500);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: sparkle 2s ease-in-out infinite;
+  z-index: 10;
+}
+
+/* Cloth Animation Classes */
+.cloth-wave {
+  animation: clothWave 3s ease-in-out infinite;
+}
+
+.cloth-ripple {
+  animation: clothRipple 4s ease-in-out infinite;
+}
+
+/* Patriotic Gradient Backgrounds */
+.patriotic-gradient {
+  background: linear-gradient(
+    135deg,
+    #FF9933 0%,
+    #FFB366 15%,
+    #FFFFFF 30%,
+    #F8FAFC 50%,
+    #FFFFFF 70%,
+    #16A085 85%,
+    #138808 100%
+  );
+  background-size: 200% 200%;
+  animation: patrioticShift 8s ease-in-out infinite;
+}
+
+@keyframes patrioticShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Enhanced Mobile Responsiveness for Flag */
+@media (max-width: 768px) {
+  .chakra-glow::before {
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+  }
+}
+
+/* Touch-friendly Flag Interactions */
+@media (hover: none) and (pointer: coarse) {
+  .chakra-glow {
+    transform: scale(1.1);
+  }
+  
+  .chakra-glow::before {
+    animation-duration: 2s;
+  }
+}
+@media (hover: none) and (pointer: coarse) {
+  .btn-primary, .btn-secondary, .btn-outline {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+  
+  button {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+}
+
 /* Modern Glass Morphism - Clean & Subtle */
 .glass {
   background: var(--glass-bg);
@@ -643,4 +1078,314 @@ body {
   background: linear-gradient(135deg, var(--saffron) 0%, #FF7A00 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(255, 153, 51, 0.3);
+}
+
+/* Chat message visibility fixes */
+.chat-message-own {
+  color: #ffffff !important;
+}
+
+.chat-message-own * {
+  color: #ffffff !important;
+}
+
+.chat-message-other {
+  color: #111827 !important;
+}
+
+.chat-message-other * {
+  color: #111827 !important;
+}
+
+/* Ensure message text is always visible */
+.message-text {
+  text-shadow: none !important;
+  font-weight: 500 !important;
+}
+
+.message-text-own {
+  color: #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+.message-text-other {
+  color: #111827 !important;
+  text-shadow: none !important;
+}
+/* Flowing Flag Enhancements */
+.flowing-flag-container {
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+
+.flowing-stripe {
+  transform-origin: left center;
+  backface-visibility: hidden;
+  will-change: transform, clip-path;
+}
+
+/* Ultra-Professional Icon Enhancements */
+.ultra-professional-icon {
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ultra-professional-icon:hover {
+  filter: drop-shadow(0 8px 25px rgba(0, 0, 0, 0.15));
+  transform: translateY(-2px);
+}
+
+/* Clean Feature Cards - No boxes */
+.feature-card-clean {
+  @apply p-8 text-center transition-all duration-300;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.feature-card-clean:hover {
+  transform: translateY(-8px);
+}
+
+.feature-card-clean .icon-container {
+  @apply mb-6 flex justify-center;
+  filter: drop-shadow(0 4px 20px rgba(255, 153, 51, 0.2));
+}
+
+.feature-card-clean:hover .icon-container {
+  filter: drop-shadow(0 8px 30px rgba(255, 153, 51, 0.3));
+  transform: scale(1.05);
+}
+
+/* Stats Section - Clean icons */
+.stats-icon-clean {
+  @apply flex justify-center mb-3;
+  filter: drop-shadow(0 4px 15px rgba(19, 136, 8, 0.2));
+}
+
+.stats-icon-clean:hover {
+  filter: drop-shadow(0 6px 25px rgba(19, 136, 8, 0.3));
+  transform: scale(1.1);
+}
+
+/* Patriotic Glow Effects for Flowing Flag */
+@keyframes patrioticFlow {
+  0%, 100% { 
+    background-position: 0% 50%;
+    filter: hue-rotate(0deg);
+  }
+  33% { 
+    background-position: 50% 0%;
+    filter: hue-rotate(5deg);
+  }
+  66% { 
+    background-position: 100% 50%;
+    filter: hue-rotate(-5deg);
+  }
+}
+
+.patriotic-flow {
+  animation: patrioticFlow 8s ease-in-out infinite;
+}
+
+/* Enhanced Chakra Positioning */
+.chakra-top {
+  top: 15% !important;
+}
+
+.chakra-center {
+  top: 50% !important;
+}
+
+.chakra-bottom {
+  top: 85% !important;
+}
+
+/* Ultra-clean button enhancements */
+.btn-ultra-clean {
+  @apply inline-flex items-center justify-center px-8 py-4 text-lg font-semibold rounded-2xl transition-all duration-300 focus:outline-none;
+  background: linear-gradient(135deg, var(--saffron) 0%, var(--white) 50%, var(--green) 100%);
+  color: var(--navy);
+  border: none;
+  box-shadow: 0 8px 32px rgba(255, 153, 51, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-ultra-clean::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.6s ease;
+}
+
+.btn-ultra-clean:hover::before {
+  left: 100%;
+}
+
+.btn-ultra-clean:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 48px rgba(255, 153, 51, 0.3);
+}
+
+/* Responsive enhancements for flowing flag */
+@media (max-width: 768px) {
+  .flowing-flag-container {
+    perspective: 800px;
+  }
+  
+  .feature-card-clean {
+    @apply p-4;
+  }
+  
+  .ultra-professional-icon {
+    transform: scale(0.9);
+  }
+}
+
+@media (max-width: 640px) {
+  .flowing-flag-container {
+    perspective: 600px;
+  }
+  
+  .feature-card-clean {
+    @apply p-3;
+  }
+  
+  .ultra-professional-icon {
+    transform: scale(0.8);
+  }
+}
+
+/* Enhanced Authentication UI Styles */
+
+/* Enhanced dropdown animations */
+.auth-dropdown {
+  transform: translateY(-10px);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.auth-dropdown.show {
+  transform: translateY(0);
+}
+
+/* Improved hover states for auth buttons */
+.auth-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s ease;
+}
+
+.auth-button:hover::before {
+  left: 100%;
+}
+
+/* User type selection improvements */
+.user-type-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+}
+
+.user-type-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.user-type-card.selected {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(255, 153, 51, 0.2);
+}
+
+.user-type-card.selected.buyer {
+  box-shadow: 0 12px 30px rgba(19, 136, 8, 0.2);
+}
+
+/* Enhanced form validation states */
+.form-field-error {
+  border-color: #EF4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.form-field-success {
+  border-color: #10B981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+/* Loading state improvements */
+.auth-loading {
+  position: relative;
+}
+
+.auth-loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Enhanced mobile auth experience */
+@media (max-width: 640px) {
+  .auth-dropdown {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90vw;
+    max-width: 320px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+  }
+  
+  .user-type-card {
+    padding: 1rem;
+  }
+  
+  .user-type-card .text-sm {
+    font-size: 0.875rem;
+  }
+}
+
+/* Accessibility improvements */
+.auth-button:focus-visible {
+  outline: 2px solid var(--saffron);
+  outline-offset: 2px;
+}
+
+.user-type-card:focus-visible {
+  outline: 2px solid var(--saffron);
+  outline-offset: 2px;
+}
+
+/* Success animations */
+@keyframes authSuccess {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.auth-success {
+  animation: authSuccess 0.3s ease-out;
 }

@@ -138,9 +138,61 @@ class TranslationService {
 
   // Hugging Face API translation
   async translateWithHuggingFace(text, fromLang, toLang) {
-    // For demo purposes, we'll use a simple mock translation
-    // In production, you would use actual Hugging Face API
-    
+    // Check if API key is available
+    if (!this.apiKey || this.apiKey === 'your_huggingface_api_key_here') {
+      return this.getMockTranslation(text, fromLang, toLang)
+    }
+
+    try {
+      // Use actual Hugging Face API
+      const modelName = this.getTranslationModel(fromLang, toLang)
+      const response = await fetch(`${this.baseUrl}/${modelName}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inputs: text,
+          parameters: {
+            src_lang: fromLang,
+            tgt_lang: toLang
+          }
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`)
+      }
+
+      const result = await response.json()
+      
+      // Handle different response formats
+      if (Array.isArray(result) && result[0]?.translation_text) {
+        return result[0].translation_text
+      } else if (result.translation_text) {
+        return result.translation_text
+      } else if (typeof result === 'string') {
+        return result
+      }
+      
+      throw new Error('Unexpected API response format')
+      
+    } catch (error) {
+      console.error('Hugging Face API error:', error)
+      // Fallback to mock translation
+      return this.getMockTranslation(text, fromLang, toLang)
+    }
+  }
+
+  // Get appropriate translation model for language pair
+  getTranslationModel(fromLang, toLang) {
+    // Use Facebook's NLLB model for multilingual translation
+    return 'facebook/nllb-200-distilled-600M'
+  }
+
+  // Mock translation for demo/fallback
+  getMockTranslation(text, fromLang, toLang) {
     const mockTranslations = {
       'en_hi': {
         'hello': 'नमस्ते',

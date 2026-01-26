@@ -28,7 +28,8 @@ describe('LanguageSelector', () => {
     )
     
     expect(screen.getByText('English')).toBeInTheDocument()
-    expect(screen.getByText('🇬🇧')).toBeInTheDocument()
+    // English should not show any flag (no UK flag)
+    expect(screen.queryByText('🇬🇧')).not.toBeInTheDocument()
   })
 
   test('renders with Hindi selection', () => {
