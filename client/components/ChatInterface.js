@@ -270,20 +270,178 @@ const AISuggestion = ({ suggestion, onDismiss, onAccept, language }) => {
   )
 }
 
+// Mock data for demo mode
+const DEMO_MESSAGES = [
+  {
+    id: 1,
+    message: "नमस्ते! मैं टमाटर बेच रहा हूं। क्या आप खरीदना चाहते हैं?",
+    translatedMessage: "Hello! I'm selling tomatoes. Would you like to buy?",
+    sender: "vendor",
+    timestamp: new Date(Date.now() - 300000),
+    status: "read",
+    language: "hi"
+  },
+  {
+    id: 2,
+    message: "Hi! Yes, I'm interested. What's the price per kg?",
+    translatedMessage: "हाय! हां, मुझे दिलचस्पी है। प्रति किलो क्या दाम है?",
+    sender: "buyer",
+    timestamp: new Date(Date.now() - 240000),
+    status: "read",
+    language: "en"
+  },
+  {
+    id: 3,
+    message: "₹40 प्रति किलो। बहुत अच्छी गुणवत्ता है।",
+    translatedMessage: "₹40 per kg. Very good quality.",
+    sender: "vendor",
+    timestamp: new Date(Date.now() - 180000),
+    status: "read",
+    language: "hi"
+  },
+  {
+    id: 4,
+    message: "Can you do ₹35 per kg? I need 10 kg.",
+    translatedMessage: "क्या आप ₹35 प्रति किलो कर सकते हैं? मुझे 10 किलो चाहिए।",
+    sender: "buyer",
+    timestamp: new Date(Date.now() - 120000),
+    status: "read",
+    language: "en"
+  }
+]
+
+// Mock responses for demo
+const MOCK_RESPONSES = {
+  vendor: [
+    "ठीक है, ₹35 प्रति किलो चलेगा। 10 किलो के लिए ₹350।",
+    "आपको कब चाहिए? मैं आज शाम तक डिलीवर कर सकता हूं।",
+    "पेमेंट कैसे करेंगे? UPI या कैश?",
+    "धन्यवाद! आपका ऑर्डर तैयार है।"
+  ],
+  buyer: [
+    "Great! When can you deliver?",
+    "Do you accept UPI payments?",
+    "Can I get a discount for bulk order?",
+    "Thank you for the good service!"
+  ]
+}
+
 // Main Chat Interface Component
 export default function ChatInterface({ 
-  messages, 
-  onSendMessage, 
+  messages: propMessages, 
+  onSendMessage: propOnSendMessage, 
   currentMessage, 
   setCurrentMessage,
   language,
   userType,
-  isConnected,
+  isConnected: propIsConnected,
   typingUsers = new Set(),
   onTyping,
-  negotiationSuggestion,
-  setNegotiationSuggestion
+  negotiationSuggestion: propNegotiationSuggestion,
+  setNegotiationSuggestion: propSetNegotiationSuggestion
 }) {
+  // Demo mode state
+  const [demoMessages, setDemoMessages] = useState(DEMO_MESSAGES)
+  const [demoConnected, setDemoConnected] = useState(true)
+  const [demoTyping, setDemoTyping] = useState(false)
+  const [demoSuggestion, setDemoSuggestion] = useState(null)
+  
+  // Use demo data if no backend connection
+  const messages = propMessages?.length > 0 ? propMessages : demoMessages
+  const isConnected = propIsConnected !== undefined ? propIsConnected : demoConnected
+  const negotiationSuggestion = propNegotiationSuggestion || demoSuggestion
+  const setNegotiationSuggestion = propSetNegotiationSuggestion || setDemoSuggestion
+  
+  // Mock translation service
+  const mockTranslate = (text, fromLang, toLang) => {
+    const translations = {
+      'hi-en': {
+        'नमस्ते': 'Hello',
+        'धन्यवाद': 'Thank you',
+        'कैसे हैं आप': 'How are you',
+        'मैं ठीक हूं': 'I am fine',
+        'टमाटर': 'Tomatoes',
+        'प्याज': 'Onions',
+        'आलू': 'Potatoes'
+      },
+      'en-hi': {
+        'Hello': 'नमस्ते',
+        'Thank you': 'धन्यवाद',
+        'How are you': 'कैसे हैं आप',
+        'I am fine': 'मैं ठीक हूं',
+        'Tomatoes': 'टमाटर',
+        'Onions': 'प्याज',
+        'Potatoes': 'आलू'
+      }
+    }
+    
+    const key = `${fromLang}-${toLang}`
+    const translationMap = translations[key] || {}
+    
+    // Simple word-by-word translation for demo
+    return Object.keys(translationMap).reduce((result, word) => {
+      return result.replace(new RegExp(word, 'gi'), translationMap[word])
+    }, text) || text
+  }
+  
+  // Demo send message function
+  const demoSendMessage = () => {
+    if (!currentMessage.trim()) return
+    
+    const newMessage = {
+      id: Date.now(),
+      message: currentMessage,
+      translatedMessage: mockTranslate(currentMessage, language, language === 'hi' ? 'en' : 'hi'),
+      sender: userType,
+      timestamp: new Date(),
+      status: "sent",
+      language: language
+    }
+    
+    setDemoMessages(prev => [...prev, newMessage])
+    setCurrentMessage('')
+    
+    // Simulate typing and response
+    setTimeout(() => {
+      setDemoTyping(true)
+      setTimeout(() => {
+        setDemoTyping(false)
+        
+        const otherUserType = userType === 'vendor' ? 'buyer' : 'vendor'
+        const responses = MOCK_RESPONSES[otherUserType]
+        const randomResponse = responses[Math.floor(Math.random() * responses.length)]
+        
+        const responseMessage = {
+          id: Date.now() + 1,
+          message: randomResponse,
+          translatedMessage: mockTranslate(randomResponse, 'en', language),
+          sender: otherUserType,
+          timestamp: new Date(),
+          status: "delivered",
+          language: otherUserType === 'vendor' ? 'hi' : 'en'
+        }
+        
+        setDemoMessages(prev => [...prev, responseMessage])
+        
+        // Occasionally show AI suggestion
+        if (Math.random() > 0.7) {
+          setTimeout(() => {
+            setDemoSuggestion({
+              suggestion: language === 'hi' 
+                ? "क्या आप बल्क ऑर्डर के लिए डिस्काउंट दे सकते हैं?"
+                : "Can you offer a discount for bulk orders?",
+              reason: language === 'hi'
+                ? "बड़े ऑर्डर के लिए बेहतर दाम मिल सकते हैं"
+                : "Better prices are often available for larger orders",
+              priority: "medium"
+            })
+          }, 2000)
+        }
+      }, 2000)
+    }, 500)
+  }
+  
+  const onSendMessage = propOnSendMessage || demoSendMessage
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   const [replyingTo, setReplyingTo] = useState(null)
@@ -387,6 +545,13 @@ export default function ChatInterface({
           </div>
           
           <div className="flex items-center space-x-3">
+            {/* Demo Mode Indicator */}
+            {!propIsConnected && (
+              <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                {language === 'hi' ? 'डेमो मोड' : 'Demo Mode'}
+              </div>
+            )}
+            
             <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${
               isConnected 
                 ? 'bg-green-100 text-green-800' 
@@ -444,7 +609,9 @@ export default function ChatInterface({
         </AnimatePresence>
 
         {/* Typing Indicator */}
-        <TypingIndicator users={typingUsers} language={language} />
+        {(demoTyping || typingUsers.size > 0) && (
+          <TypingIndicator users={typingUsers} language={language} />
+        )}
         
         <div ref={messagesEndRef} />
       </div>
