@@ -255,7 +255,26 @@ export default function Dashboard() {
   const [showConfetti, setShowConfetti] = useState(false)
   const [currentPrice, setCurrentPrice] = useState(null)
   const [negotiationSuggestion, setNegotiationSuggestion] = useState(null)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  // Initialize sidebar state based on screen size
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true) // Start collapsed on mobile
+
+  // Set initial sidebar state based on screen size
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) { // lg breakpoint
+        setSidebarCollapsed(false) // Expanded on desktop
+      } else {
+        setSidebarCollapsed(true) // Collapsed on mobile
+      }
+    }
+
+    // Set initial state
+    if (typeof window !== 'undefined') {
+      handleResize()
+      window.addEventListener('resize', handleResize)
+      return () => window.removeEventListener('resize', handleResize)
+    }
+  }, [])
   const [activeTab, setActiveTab] = useState('dashboard')
   const [userProfile, setUserProfile] = useState(null)
 
@@ -634,16 +653,16 @@ export default function Dashboard() {
         <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100">
         </div>
 
-        {/* Mobile Sidebar Overlay */}
+        {/* Mobile Sidebar Overlay - Only show on mobile when sidebar is open */}
         {!sidebarCollapsed && (
           <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+            className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
             onClick={() => setSidebarCollapsed(true)}
           />
         )}
 
         {/* Main Layout */}
-        <div className="relative z-10 flex h-screen">
+        <div className="relative flex h-screen">
           {/* Sidebar */}
           <motion.aside
             initial={{ x: -300 }}
@@ -651,7 +670,7 @@ export default function Dashboard() {
             className={`${sidebarCollapsed ? 'w-20' : 'w-80'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col shadow-lg
               lg:relative lg:translate-x-0
               ${sidebarCollapsed ? 'lg:w-20' : 'lg:w-80'}
-              ${sidebarCollapsed ? 'max-lg:w-0 max-lg:overflow-hidden' : 'max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-50 max-lg:w-80'}
+              ${sidebarCollapsed ? 'max-lg:w-0 max-lg:overflow-hidden' : 'max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-[60] max-lg:w-80'}
             `}
           >
             {/* Sidebar Header */}
