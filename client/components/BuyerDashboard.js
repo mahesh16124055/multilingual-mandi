@@ -26,6 +26,8 @@ export default function BuyerDashboard({
 }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [quantities, setQuantities] = useState({}) // Track quantities for each product
+  const [hoveredProduct, setHoveredProduct] = useState(null) // Track which product is being hovered
   
   const [availableProducts, setAvailableProducts] = useState([
     {
@@ -176,6 +178,21 @@ export default function BuyerDashboard({
     return matchesSearch && matchesCategory
   })
 
+  const handleQuantityChange = (productId, change) => {
+    setQuantities(prev => ({
+      ...prev,
+      [productId]: Math.max(1, (prev[productId] || 1) + change)
+    }))
+  }
+
+  const handleAddToCart = (product) => {
+    const quantity = quantities[product.id] || 1
+    console.log(`Adding ${quantity} units of ${product.name} to cart`)
+    // Here you would typically call an API or update global state
+    // For now, we'll just show a visual feedback
+    alert(`Added ${quantity} kg of ${product.name} to cart!`)
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Buyer Welcome Section */}
@@ -315,23 +332,50 @@ export default function BuyerDashboard({
                     <span className="text-sm text-gray-500 line-through ml-2">{product.originalPrice}</span>
                   )}
                 </div>
+                
+                {/* Quantity controls - simple and always visible */}
+                {product.inStock && (
+                  <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+                    <button 
+                      onClick={() => handleQuantityChange(product.id, -1)}
+                      className="w-8 h-8 flex items-center justify-center rounded-md bg-white shadow-sm hover:bg-gray-50 transition-colors font-semibold text-gray-700"
+                    >
+                      -
+                    </button>
+                    <span className="w-8 text-center font-bold text-gray-800">
+                      {quantities[product.id] || 1}
+                    </span>
+                    <button 
+                      onClick={() => handleQuantityChange(product.id, 1)}
+                      className="w-8 h-8 flex items-center justify-center rounded-md bg-white shadow-sm hover:bg-gray-50 transition-colors font-semibold text-gray-700"
+                    >
+                      +
+                    </button>
+                  </div>
+                )}
               </div>
               
+              {/* Cart buttons - simple and always visible */}
               <div className="flex space-x-2">
                 <button 
-                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                  onClick={() => handleAddToCart(product)}
+                  className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center space-x-2 ${
                     product.inStock
-                      ? 'bg-saffron text-white hover:bg-orange-600'
-                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      ? 'bg-orange-400 text-white hover:bg-orange-600 shadow-md hover:shadow-lg'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                   disabled={!product.inStock}
                 >
-                  {getTranslatedUI('Add to Cart', selectedLanguage)}
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>{getTranslatedUI('Add to Cart', selectedLanguage)}</span>
                 </button>
-                <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  <Heart className="w-5 h-5 text-gray-600" />
+                
+                <button className="p-3 border-2 border-gray-300 rounded-lg hover:border-pink-400 hover:bg-pink-50 transition-all duration-200">
+                  <Heart className="w-5 h-5 text-gray-600 hover:text-pink-500 transition-colors" />
                 </button>
               </div>
+              
+              {/* Remove the overlay effect */}
             </motion.div>
           ))}
         </div>
@@ -409,13 +453,14 @@ export default function BuyerDashboard({
 
           <div className="space-y-3">
             {wishlist.map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                 <div>
-                  <p className="font-medium text-gray-900">{getTranslatedProductName(item.name, selectedLanguage)}</p>
-                  <p className="text-sm text-saffron font-semibold">{item.price}</p>
+                  <p className="font-semibold text-gray-900">{getTranslatedProductName(item.name, selectedLanguage)}</p>
+                  <p className="text-sm text-saffron font-bold">{item.price}</p>
                 </div>
-                <button className="btn-primary text-sm">
-                  {getTranslatedUI('Add to Cart', selectedLanguage)}
+                <button className="bg-gradient-to-r from-saffron to-orange-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-orange-600 hover:to-red-600 transition-all duration-200 flex items-center space-x-2 shadow-md hover:shadow-lg transform hover:scale-105">
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>{getTranslatedUI('Add to Cart', selectedLanguage)}</span>
                 </button>
               </div>
             ))}

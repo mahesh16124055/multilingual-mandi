@@ -1,302 +1,241 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { motion, AnimatePresence, useSpring } from 'framer-motion'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Send, 
   Bot, 
   User, 
-  Volume2, 
-  Copy, 
-  Languages, 
-  MoreVertical, 
-  Reply, 
-  Heart, 
-  Smile, 
-  Image, 
-  Paperclip, 
-  Zap,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
-  Loader2
+  Languages,
+  Volume2,
+  RotateCcw,
+  ArrowRightLeft
 } from 'lucide-react'
+import { useLanguage } from '../contexts/LanguageContext'
+import TranslationService from '../utils/translationService'
 
-// Message status enum
-const MessageStatus = {
-  SENDING: 'sending',
-  SENT: 'sent',
-  DELIVERED: 'delivered',
-  READ: 'read',
-  FAILED: 'failed'
-}
-
-// Message component with advanced features
-const MessageBubble = ({ message, isOwn, language, onReply, onReact, onSpeak, onCopy }) => {
-  const [showActions, setShowActions] = useState(false)
-  const [reactions, setReactions] = useState(message.reactions || [])
-  
-  const getStatusIcon = () => {
-    switch (message.status) {
-      case MessageStatus.SENDING:
-        return <Loader2 className="w-3 h-3 animate-spin text-gray-500" />
-      case MessageStatus.SENT:
-        return <CheckCircle2 className="w-3 h-3 text-gray-500" />
-      case MessageStatus.DELIVERED:
-        return <CheckCircle2 className="w-3 h-3 text-blue-500" />
-      case MessageStatus.READ:
-        return <CheckCircle2 className="w-3 h-3 text-green-500" />
-      case MessageStatus.FAILED:
-        return <AlertCircle className="w-3 h-3 text-red-500" />
-      default:
-        return null
-    }
-  }
-
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -20, scale: 0.95 }}
-      transition={{ type: "spring", damping: 25, stiffness: 200 }}
-      className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group`}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-    >
-      <div className={`max-w-xs lg:max-w-md relative ${isOwn ? 'ml-auto' : 'mr-auto'}`}>
-        {/* Message Bubble */}
-        <div 
-          className={`relative px-6 py-4 rounded-3xl shadow-lg ${
-            isOwn
-              ? 'ml-4 chat-message-own'
-              : 'mr-4 border border-gray-200 chat-message-other'
-          }`}
-          style={{
-            backgroundColor: isOwn ? '#f97316 !important' : '#ffffff !important',
-            color: isOwn ? '#ffffff !important' : '#000000 !important'
-          }}
-        >
-          {/* Sender Info */}
-          <div className="flex items-center space-x-2 mb-2">
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-              isOwn ? 'bg-white/20' : 'bg-saffron-subtle'
-            }`}>
-              {isOwn ? (
-                <User className="w-3 h-3" />
-              ) : (
-                <Bot className="w-3 h-3 text-saffron" />
-              )}
-            </div>
-            <span className={`text-xs font-medium`} style={{
-              color: isOwn ? 'rgba(255, 255, 255, 0.8)' : '#6b7280'
-            }}>
-              {isOwn 
-                ? (language === 'hi' ? 'आप' : 'You')
-                : (message.sender === 'vendor' 
-                  ? (language === 'hi' ? 'विक्रेता' : 'Vendor')
-                  : (language === 'hi' ? 'खरीदार' : 'Buyer')
-                )
-              }
-            </span>
-            <span className={`text-xs`} style={{
-              color: isOwn ? 'rgba(255, 255, 255, 0.6)' : '#9ca3af'
-            }}>
-              {new Date(message.timestamp).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </span>
-          </div>
-
-          {/* Message Content */}
-          <div className="space-y-3">
-            <div 
-              style={{
-                color: isOwn ? '#FFFFFF !important' : '#000000 !important',
-                fontWeight: 'bold !important',
-                fontSize: '16px !important',
-                lineHeight: '1.5 !important',
-                textShadow: isOwn ? '2px 2px 4px rgba(0,0,0,0.8) !important' : '1px 1px 2px rgba(255,255,255,0.8) !important',
-                backgroundColor: 'transparent !important',
-                padding: '4px 0 !important',
-                display: 'block !important',
-                zIndex: '999 !important',
-                position: 'relative !important'
-              }}
-            >
-              {message.message}
-            </div>
-
-            {/* Translation */}
-            {message.translatedMessage && 
-             message.translatedMessage !== message.message && (
-              <div className={`pt-3 border-t ${
-                isOwn ? 'border-white/20' : 'border-gray-200'
-              }`}>
-                <div className="flex items-center space-x-1 mb-2">
-                  <Languages className="w-3 h-3 opacity-75" />
-                  <span className={`text-xs`} style={{
-                    color: isOwn ? 'rgba(255, 255, 255, 0.8)' : '#6b7280'
-                  }}>
-                    {language === 'hi' ? 'अनुवाद' : 'Translation'}
-                  </span>
-                </div>
-                <div 
-                  style={{
-                    color: isOwn ? '#FFFFFF !important' : '#333333 !important',
-                    fontWeight: '600 !important',
-                    fontSize: '14px !important',
-                    lineHeight: '1.4 !important',
-                    textShadow: isOwn ? '2px 2px 4px rgba(0,0,0,0.8) !important' : '1px 1px 2px rgba(255,255,255,0.8) !important',
-                    backgroundColor: 'transparent !important',
-                    padding: '4px 0 !important',
-                    display: 'block !important',
-                    zIndex: '999 !important',
-                    position: 'relative !important'
-                  }}
-                >
-                  {message.translatedMessage}
-                </div>
-              </div>
-            )}
-
-            {/* Message Status */}
-            {isOwn && (
-              <div className="flex items-center justify-end space-x-1 mt-2">
-                {getStatusIcon()}
-              </div>
-            )}
-          </div>
-
-          {/* Reactions */}
-          {reactions.length > 0 && (
-            <div className="flex items-center space-x-1 mt-3 pt-2 border-t border-white/20">
-              {reactions.map((reaction, index) => (
-                <span key={index} className="text-sm">
-                  {reaction.emoji}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Quick Actions */}
-        <AnimatePresence>
-          {showActions && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className={`absolute top-0 ${isOwn ? 'left-0' : 'right-0'} flex items-center space-x-1 bg-white rounded-full px-2 py-1 shadow-lg border border-gray-200`}
-            >
-              <button
-                onClick={() => onReact(message.id, '👍')}
-                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                title="Like"
-              >
-                <Heart className="w-3 h-3 text-gray-600" />
-              </button>
-              <button
-                onClick={() => onReply(message)}
-                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                title="Reply"
-              >
-                <Reply className="w-3 h-3 text-gray-600" />
-              </button>
-              <button
-                onClick={() => onCopy(message.message)}
-                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                title="Copy"
-              >
-                <Copy className="w-3 h-3 text-gray-600" />
-              </button>
-              <button
-                onClick={() => onSpeak(message.message, message.language || language)}
-                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                title="Speak"
-              >
-                <Volume2 className="w-3 h-3 text-gray-600" />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </motion.div>
-  )
-}
-
-// Typing indicator component
-const TypingIndicator = ({ users, language }) => {
-  if (users.size === 0) return null
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      className="flex items-center space-x-2 px-6 py-3"
-    >
-      <div className="flex space-x-1">
-        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-      </div>
-      <span className="text-sm text-gray-600">
-        {language === 'hi' ? 'टाइप कर रहा है...' : 'Typing...'}
-      </span>
-    </motion.div>
-  )
-}
-
-// AI Suggestion Component
-const AISuggestion = ({ suggestion, onDismiss, onAccept, language }) => {
-  if (!suggestion) return null
+// Enhanced Message component with language features
+const MessageBubble = ({ message, isOwn, showTranslation, onSpeak, onRetranslate }) => {
+  const { getLanguageInfo } = useLanguage()
+  const [isHovered, setIsHovered] = useState(false)
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="mx-6 mb-4 bg-white border border-saffron/30 rounded-2xl p-4 shadow-lg"
+      className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-4 group`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="flex items-start space-x-3">
-        <div className="w-8 h-8 bg-gradient-to-r from-saffron to-orange-600 rounded-full flex items-center justify-center">
-          <Zap className="w-4 h-4 text-white" />
+      <div className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl relative ${
+        isOwn
+          ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white ml-4'
+          : 'bg-white border border-gray-200 text-gray-900 mr-4 shadow-sm'
+      }`}>
+        {/* Message Actions - Show on hover */}
+        {isHovered && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={`absolute -top-2 ${isOwn ? 'left-0' : 'right-0'} flex items-center space-x-1 bg-white rounded-full px-2 py-1 shadow-lg border border-gray-200`}
+          >
+            <button
+              onClick={() => onSpeak && onSpeak(message.message, message.language)}
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              title="Speak"
+            >
+              <Volume2 className="w-3 h-3 text-gray-600" />
+            </button>
+            <button
+              onClick={() => onRetranslate && onRetranslate(message)}
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              title="Retranslate"
+            >
+              <RotateCcw className="w-3 h-3 text-gray-600" />
+            </button>
+          </motion.div>
+        )}
+
+        {/* Sender Info */}
+        <div className="flex items-center space-x-2 mb-2">
+          <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+            isOwn ? 'bg-white/20' : 'bg-orange-100'
+          }`}>
+            {isOwn ? (
+              <User className="w-3 h-3" />
+            ) : (
+              <Bot className="w-3 h-3 text-orange-500" />
+            )}
+          </div>
+          <span className="text-xs font-medium opacity-75">
+            {isOwn ? 'You' : 'AI Assistant'}
+          </span>
+          <span className="text-xs opacity-60">
+            {new Date(message.timestamp).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </span>
+          {/* Language indicator */}
+          <span className="text-xs opacity-60 bg-black/10 px-1 rounded">
+            {getLanguageInfo(message.language).flag} {message.language.toUpperCase()}
+          </span>
         </div>
-        <div className="flex-1">
-          <div className="flex items-center space-x-2 mb-2">
-            <span className="text-sm font-semibold text-gray-900">AI Assistant</span>
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-              suggestion.priority === 'high' ? 'bg-red-100 text-red-800' :
-              suggestion.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-green-100 text-green-800'
-            }`}>
-              {suggestion.priority}
-            </span>
+
+        {/* Message Content */}
+        <div className="space-y-2">
+          <div className="font-medium">
+            {message.message}
           </div>
-          <p className="text-sm text-gray-700 mb-2">{suggestion.suggestion}</p>
-          <p className="text-xs text-gray-500 mb-3">{suggestion.reason}</p>
-          
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => onAccept(suggestion)}
-              className="btn-secondary text-sm"
+
+          {/* Translation */}
+          {showTranslation && message.translatedMessage && 
+           message.translatedMessage !== message.message && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className={`pt-2 border-t ${
+                isOwn ? 'border-white/20' : 'border-gray-200'
+              }`}
             >
-              {language === 'hi' ? 'स्वीकार करें' : 'Accept'}
-            </button>
-            <button
-              onClick={onDismiss}
-              className="btn-outline text-sm"
-            >
-              {language === 'hi' ? 'खारिज करें' : 'Dismiss'}
-            </button>
-          </div>
+              <div className="flex items-center space-x-1 mb-1">
+                <Languages className="w-3 h-3 opacity-75" />
+                <span className="text-xs opacity-75">
+                  Translation
+                </span>
+                <span className="text-xs opacity-60 bg-black/10 px-1 rounded">
+                  {getLanguageInfo(message.targetLanguage || 'hi').flag}
+                </span>
+              </div>
+              <div className="text-sm opacity-90 italic">
+                {message.translatedMessage}
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
     </motion.div>
   )
 }
 
-// Mock data for demo mode
+// Language Control Panel
+const LanguageControlPanel = ({ isOpen, onClose }) => {
+  const { 
+    globalLanguage, 
+    chatTargetLanguage, 
+    languages, 
+    autoTranslate,
+    voiceEnabled,
+    changeGlobalLanguage, 
+    changeChatTargetLanguage,
+    smartLanguageSwitch,
+    setAutoTranslate,
+    setVoiceEnabled
+  } = useLanguage()
+
+  if (!isOpen) return null
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="absolute top-16 right-4 bg-white border border-gray-200 rounded-xl p-4 shadow-xl z-50 min-w-[300px]"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-gray-900">Language Settings</h3>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          ×
+        </button>
+      </div>
+
+      {/* Global Language */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          App Language (Global)
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          {Object.entries(languages).map(([code, info]) => (
+            <button
+              key={code}
+              onClick={() => changeGlobalLanguage(code)}
+              className={`p-2 rounded-lg border text-sm transition-colors ${
+                globalLanguage === code
+                  ? 'bg-orange-500 text-white border-orange-500'
+                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              {info.flag} {info.native}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Chat Target Language */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Chat Translation Target
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          {Object.entries(languages).map(([code, info]) => (
+            <button
+              key={code}
+              onClick={() => changeChatTargetLanguage(code)}
+              className={`p-2 rounded-lg border text-sm transition-colors ${
+                chatTargetLanguage === code
+                  ? 'bg-blue-500 text-white border-blue-500'
+                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              {info.flag} {info.native}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="mb-4">
+        <button
+          onClick={smartLanguageSwitch}
+          className="w-full bg-gradient-to-r from-orange-500 to-blue-500 text-white p-2 rounded-lg font-medium flex items-center justify-center space-x-2"
+        >
+          <ArrowRightLeft className="w-4 h-4" />
+          <span>Smart Switch</span>
+        </button>
+      </div>
+
+      {/* Settings */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-700">Auto-translate messages</span>
+          <button
+            onClick={() => setAutoTranslate(!autoTranslate)}
+            className={`w-10 h-6 rounded-full transition-colors ${
+              autoTranslate ? 'bg-green-500' : 'bg-gray-300'
+            }`}
+          >
+            <div className={`w-4 h-4 bg-white rounded-full transition-transform ${
+              autoTranslate ? 'translate-x-5' : 'translate-x-1'
+            }`} />
+          </button>
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-700">Voice features</span>
+          <button
+            onClick={() => setVoiceEnabled(!voiceEnabled)}
+            className={`w-10 h-6 rounded-full transition-colors ${
+              voiceEnabled ? 'bg-green-500' : 'bg-gray-300'
+            }`}
+          >
+            <div className={`w-4 h-4 bg-white rounded-full transition-transform ${
+              voiceEnabled ? 'translate-x-5' : 'translate-x-1'
+            }`} />
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+// Demo messages
 const DEMO_MESSAGES = [
   {
     id: 1,
@@ -304,7 +243,6 @@ const DEMO_MESSAGES = [
     translatedMessage: "Hello! I'm selling tomatoes. Would you like to buy?",
     sender: "vendor",
     timestamp: new Date(Date.now() - 300000),
-    status: "read",
     language: "hi"
   },
   {
@@ -313,44 +251,9 @@ const DEMO_MESSAGES = [
     translatedMessage: "हाय! हां, मुझे दिलचस्पी है। प्रति किलो क्या दाम है?",
     sender: "buyer",
     timestamp: new Date(Date.now() - 240000),
-    status: "read",
-    language: "en"
-  },
-  {
-    id: 3,
-    message: "₹40 प्रति किलो। बहुत अच्छी गुणवत्ता है।",
-    translatedMessage: "₹40 per kg. Very good quality.",
-    sender: "vendor",
-    timestamp: new Date(Date.now() - 180000),
-    status: "read",
-    language: "hi"
-  },
-  {
-    id: 4,
-    message: "Can you do ₹35 per kg? I need 10 kg.",
-    translatedMessage: "क्या आप ₹35 प्रति किलो कर सकते हैं? मुझे 10 किलो चाहिए।",
-    sender: "buyer",
-    timestamp: new Date(Date.now() - 120000),
-    status: "read",
     language: "en"
   }
 ]
-
-// Mock responses for demo
-const MOCK_RESPONSES = {
-  vendor: [
-    "ठीक है, ₹35 प्रति किलो चलेगा। 10 किलो के लिए ₹350।",
-    "आपको कब चाहिए? मैं आज शाम तक डिलीवर कर सकता हूं।",
-    "पेमेंट कैसे करेंगे? UPI या कैश?",
-    "धन्यवाद! आपका ऑर्डर तैयार है।"
-  ],
-  buyer: [
-    "Great! When can you deliver?",
-    "Do you accept UPI payments?",
-    "Can I get a discount for bulk order?",
-    "Thank you for the good service!"
-  ]
-}
 
 // Main Chat Interface Component
 export default function ChatInterface({ 
@@ -358,277 +261,305 @@ export default function ChatInterface({
   onSendMessage: propOnSendMessage, 
   currentMessage, 
   setCurrentMessage,
-  language,
-  userType,
-  isConnected: propIsConnected,
-  typingUsers = new Set(),
-  onTyping,
-  negotiationSuggestion: propNegotiationSuggestion,
-  setNegotiationSuggestion: propSetNegotiationSuggestion
+  language = 'en',
+  userType = 'buyer',
+  isConnected = true
 }) {
-  // Demo mode state
+  const { 
+    globalLanguage, 
+    chatTargetLanguage, 
+    autoTranslate,
+    addToHistory,
+    detectLanguage 
+  } = useLanguage()
+
+  // Initialize translation service
+  const translationService = useRef(new TranslationService())
+
+  // Demo state
   const [demoMessages, setDemoMessages] = useState(DEMO_MESSAGES)
-  const [demoConnected, setDemoConnected] = useState(true)
-  const [demoTyping, setDemoTyping] = useState(false)
-  const [demoSuggestion, setDemoSuggestion] = useState(null)
+  const [inputValue, setInputValue] = useState('')
+  const [showLanguagePanel, setShowLanguagePanel] = useState(false)
+  const [showTranslations, setShowTranslations] = useState(true)
+  const [isTranslating, setIsTranslating] = useState(false)
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false)
   
-  // Use demo data if no real backend connection
-  const hasRealBackend = propIsConnected && propOnSendMessage && propMessages && propMessages.length > 0
-  const messages = hasRealBackend ? propMessages : demoMessages
-  const isConnected = true // Always enable input in demo mode
-  const negotiationSuggestion = propNegotiationSuggestion || demoSuggestion
-  const setNegotiationSuggestion = propSetNegotiationSuggestion || setDemoSuggestion
-  
-  // Mock translation service
-  const mockTranslate = (text, fromLang, toLang) => {
-    const translations = {
-      'hi-en': {
-        'नमस्ते': 'Hello',
-        'धन्यवाद': 'Thank you',
-        'कैसे हैं आप': 'How are you',
-        'मैं ठीक हूं': 'I am fine',
-        'टमाटर': 'Tomatoes',
-        'प्याज': 'Onions',
-        'आलू': 'Potatoes'
-      },
-      'en-hi': {
-        'Hello': 'नमस्ते',
-        'Thank you': 'धन्यवाद',
-        'How are you': 'कैसे हैं आप',
-        'I am fine': 'मैं ठीक हूं',
-        'Tomatoes': 'टमाटर',
-        'Onions': 'प्याज',
-        'Potatoes': 'आलू'
-      }
-    }
-    
-    const key = `${fromLang}-${toLang}`
-    const translationMap = translations[key] || {}
-    
-    // Simple word-by-word translation for demo
-    return Object.keys(translationMap).reduce((result, word) => {
-      return result.replace(new RegExp(word, 'gi'), translationMap[word])
-    }, text) || text
-  }
-  
-  // Demo send message function
-  const demoSendMessage = () => {
-    console.log('🚀 Demo send message called!', currentMessage)
-    if (!currentMessage.trim()) return
-    
-    const newMessage = {
-      id: Date.now(),
-      message: currentMessage,
-      translatedMessage: `[Hindi] ${currentMessage}`,
-      sender: userType,
-      timestamp: new Date(),
-      status: "sent",
-      language: language
-    }
-    
-    console.log('📝 Adding new message:', newMessage)
-    setDemoMessages(prev => [...prev, newMessage])
-    setCurrentMessage('')
-    
-    // Immediate response for testing
-    setTimeout(() => {
-      const otherUserType = userType === 'vendor' ? 'buyer' : 'vendor'
-      const responses = [
-        "Thank you for your message!",
-        "That sounds good to me.",
-        "Let me check the price for you.",
-        "I can help you with that."
-      ]
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)]
-      
-      const responseMessage = {
-        id: Date.now() + 1,
-        message: randomResponse,
-        translatedMessage: `[Hindi] ${randomResponse}`,
-        sender: otherUserType,
-        timestamp: new Date(),
-        status: "delivered",
-        language: 'en'
-      }
-      
-      console.log('🤖 Adding response message:', responseMessage)
-      setDemoMessages(prev => [...prev, responseMessage])
-    }, 1000) // Quick response
-  }
-  
-  const onSendMessage = hasRealBackend ? propOnSendMessage : demoSendMessage
-  
-  console.log('Chat Interface Debug:', {
-    hasRealBackend,
-    propIsConnected,
-    propOnSendMessage: !!propOnSendMessage,
-    propMessages: propMessages?.length || 0,
-    usingFunction: hasRealBackend ? 'real' : 'demo'
-  })
+  // Always use demo mode for better experience
+  const messages = demoMessages
   const messagesEndRef = useRef(null)
-  const inputRef = useRef(null)
-  const [replyingTo, setReplyingTo] = useState(null)
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const messagesContainerRef = useRef(null)
 
-  // Auto-scroll to bottom
+  // Handle scroll to detect if user is at bottom
+  const handleScroll = useCallback(() => {
+    if (messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 100
+      const isScrolledUp = scrollTop < scrollHeight - clientHeight - 50
+      setShowScrollToBottom(isScrolledUp && messages.length > 3) // Show button if scrolled up and has messages
+    }
+  }, [messages.length])
+
+  // Scroll to bottom function
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [])
+
+  // Auto-scroll to bottom only if user is already at bottom or it's their own message
   useEffect(() => {
-    if (messagesEndRef.current && typeof messagesEndRef.current.scrollIntoView === 'function') {
-      messagesEndRef.current.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'end'
-      })
+    if (messagesEndRef.current && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1]
+      const messagesContainer = messagesContainerRef.current
+      
+      if (messagesContainer) {
+        const { scrollTop, scrollHeight, clientHeight } = messagesContainer
+        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 100 // 100px threshold
+        
+        // Auto-scroll if user is at bottom OR if it's their own message
+        if (isAtBottom || lastMessage.sender === userType) {
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+          }, 100) // Small delay to ensure message is rendered
+        }
+      }
     }
-  }, [messages])
+  }, [messages, userType])
 
-  // Handle typing indicator
-  const handleInputChange = useCallback((e) => {
-    console.log('Input change:', e.target.value)
-    setCurrentMessage(e.target.value)
-    if (onTyping) {
-      onTyping()
-    }
-  }, [setCurrentMessage, onTyping])
-
-  const handleSend = useCallback(() => {
-    console.log('🚀 Handle send called:', currentMessage)
+  // Enhanced AI send message function with real translation integration
+  const handleSend = useCallback(async () => {
+    if (!inputValue.trim()) return
     
-    // If no message, add a test message
-    if (!currentMessage.trim()) {
-      console.log('No message, adding test message')
-      const testMessage = {
+    setIsTranslating(true)
+    
+    try {
+      // Detect input language
+      const detectedLang = detectLanguage(inputValue)
+      
+      // Translate message if auto-translate is enabled and languages are different
+      let translatedMessage = inputValue
+      if (autoTranslate && detectedLang !== chatTargetLanguage) {
+        translatedMessage = await translationService.current.translate(
+          inputValue, 
+          detectedLang, 
+          chatTargetLanguage
+        )
+      }
+      
+      // Add user message
+      const userMessage = {
         id: Date.now(),
-        message: "Test message from send button",
-        translatedMessage: "भेजें बटन से परीक्षण संदेश",
+        message: inputValue,
+        translatedMessage: translatedMessage !== inputValue ? translatedMessage : null,
         sender: userType,
         timestamp: new Date(),
-        status: "sent",
-        language: language
+        language: detectedLang,
+        targetLanguage: chatTargetLanguage
       }
-      setDemoMessages(prev => [...prev, testMessage])
-      return
+      
+      setDemoMessages(prev => [...prev, userMessage])
+      
+      // Add to translation history if translated
+      if (translatedMessage !== inputValue) {
+        addToHistory(
+          inputValue, 
+          translatedMessage, 
+          detectedLang, 
+          chatTargetLanguage
+        )
+      }
+      
+      setInputValue('')
+      
+      // AI Response with enhanced context awareness and real translation
+      setTimeout(async () => {
+        let aiResponse = "Thank you for your message!"
+        
+        const msgLower = inputValue.toLowerCase()
+        
+        if (msgLower.includes('hello') || msgLower.includes('hi') || msgLower.includes('नमस्ते')) {
+          aiResponse = "Hello! How can I help you today? I have fresh vegetables available."
+        } else if (msgLower.includes('tomato') || msgLower.includes('टमाटर')) {
+          aiResponse = "I have fresh tomatoes available at ₹40/kg. Very good quality!"
+        } else if (msgLower.includes('price') || msgLower.includes('कीमत') || msgLower.includes('rate')) {
+          aiResponse = "Current market price is ₹35-45 per kg. I can offer ₹40/kg for good quality."
+        } else if (msgLower.includes('delivery') || msgLower.includes('डिलीवरी')) {
+          aiResponse = "Free delivery for orders above ₹500. Where is your location?"
+        } else if (msgLower.includes('quality') || msgLower.includes('गुणवत्ता')) {
+          aiResponse = "All our products are farm-fresh and of premium quality. Would you like to see samples?"
+        } else if (msgLower.includes('buy') || msgLower.includes('खरीद')) {
+          aiResponse = "Great! What quantity do you need? We offer bulk discounts for orders above 10kg."
+        }
+        
+        // Translate AI response if needed
+        let aiTranslation = aiResponse
+        if (autoTranslate && chatTargetLanguage !== 'en') {
+          try {
+            aiTranslation = await translationService.current.translate(
+              aiResponse, 
+              'en', 
+              chatTargetLanguage
+            )
+          } catch (error) {
+            console.error('AI response translation error:', error)
+          }
+        }
+        
+        const responseMessage = {
+          id: Date.now() + 1,
+          message: aiResponse,
+          translatedMessage: aiTranslation !== aiResponse ? aiTranslation : null,
+          sender: userType === 'vendor' ? 'buyer' : 'vendor',
+          timestamp: new Date(),
+          language: 'en',
+          targetLanguage: chatTargetLanguage
+        }
+        
+        setDemoMessages(prev => [...prev, responseMessage])
+        
+        // Add AI response to history if translated
+        if (aiTranslation !== aiResponse) {
+          addToHistory(
+            aiResponse, 
+            aiTranslation, 
+            'en', 
+            chatTargetLanguage
+          )
+        }
+      }, 1000 + Math.random() * 1000)
+      
+    } catch (error) {
+      console.error('Translation error:', error)
+      // Still add message even if translation fails
+      const userMessage = {
+        id: Date.now(),
+        message: inputValue,
+        translatedMessage: null,
+        sender: userType,
+        timestamp: new Date(),
+        language: detectLanguage(inputValue),
+        targetLanguage: chatTargetLanguage
+      }
+      setDemoMessages(prev => [...prev, userMessage])
+      setInputValue('')
+    } finally {
+      setIsTranslating(false)
     }
-    
-    if (currentMessage.trim() && onSendMessage) {
-      console.log('Calling onSendMessage')
-      onSendMessage()
-      setReplyingTo(null)
-    }
-  }, [currentMessage, onSendMessage, userType, language, setDemoMessages])
+  }, [inputValue, userType, autoTranslate, chatTargetLanguage, detectLanguage, addToHistory])
 
-  const handleKeyPress = useCallback((e) => {
+  const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
     }
-  }, [handleSend])
+  }
 
-  // Message actions
-  const handleCopy = useCallback(async (text) => {
+  // Voice and translation handlers
+  const handleSpeak = (text, lang) => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = lang === 'hi' ? 'hi-IN' : 'en-US'
+      speechSynthesis.speak(utterance)
+    }
+  }
+
+  const handleRetranslate = async (message) => {
     try {
-      if (typeof window !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(text)
-      }
+      setIsTranslating(true)
+      const newTranslation = await translationService.current.translate(
+        message.message,
+        message.language,
+        chatTargetLanguage
+      )
+      
+      // Update the message with new translation
+      setDemoMessages(prev => prev.map(msg => 
+        msg.id === message.id 
+          ? { ...msg, translatedMessage: newTranslation }
+          : msg
+      ))
+      
+      // Add to history
+      addToHistory(message.message, newTranslation, message.language, chatTargetLanguage)
     } catch (error) {
-      console.error('Error copying message:', error)
+      console.error('Retranslation error:', error)
+    } finally {
+      setIsTranslating(false)
     }
-  }, [])
-
-  const handleSpeak = useCallback((text, lang) => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      try {
-        const utterance = new SpeechSynthesisUtterance(text)
-        utterance.lang = getLanguageCode(lang)
-        utterance.rate = 0.9
-        utterance.pitch = 1
-        speechSynthesis.speak(utterance)
-      } catch (error) {
-        console.error('Error speaking message:', error)
-      }
-    }
-  }, [])
-
-  const handleReply = useCallback((message) => {
-    setReplyingTo(message)
-    inputRef.current?.focus()
-  }, [])
-
-  const handleReact = useCallback((messageId, emoji) => {
-    // Implementation for message reactions
-    console.log('React to message:', messageId, emoji)
-  }, [])
-
-  const getLanguageCode = (lang) => {
-    const langMap = {
-      'en': 'en-US',
-      'hi': 'hi-IN',
-      'ta': 'ta-IN',
-      'te': 'te-IN',
-      'kn': 'kn-IN',
-      'mr': 'mr-IN',
-      'bn': 'bn-IN'
-    }
-    return langMap[lang] || 'en-US'
   }
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      {/* Chat Header */}
-      <div className="bg-gradient-to-r from-saffron-subtle to-green-subtle border-b border-gray-200 p-6">
+    <div className="flex flex-col h-full bg-white relative">
+      {/* Language Control Panel */}
+      <AnimatePresence>
+        <LanguageControlPanel 
+          isOpen={showLanguagePanel} 
+          onClose={() => setShowLanguagePanel(false)} 
+        />
+      </AnimatePresence>
+
+      {/* Enhanced Chat Header - Fixed Height */}
+      <div className="bg-gradient-to-r from-orange-100 to-orange-50 border-b border-gray-200 p-4 flex-shrink-0">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-gradient-to-r from-saffron to-orange-600 rounded-full flex items-center justify-center">
-              <Languages className="w-6 h-6 text-white" />
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-600 rounded-full flex items-center justify-center">
+              <Languages className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Multilingual Chat</h2>
+              <h2 className="text-lg font-bold text-gray-900">Multilingual Chat</h2>
               <p className="text-sm text-gray-600">
-                {language === 'hi' ? 'अपनी भाषा में बात करें' : 'Speak in your language'}
+                {globalLanguage === 'hi' ? 'अपनी भाषा में बात करें' : 'Speak in your language'}
               </p>
             </div>
           </div>
           
-          <div className="flex items-center space-x-3">
-            {/* Demo Mode Indicator */}
-            {!hasRealBackend && (
-              <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                {language === 'hi' ? 'डेमो मोड' : 'Demo Mode'}
-              </div>
-            )}
+          <div className="flex items-center space-x-2">
+            {/* Language Settings Button */}
+            <button
+              onClick={() => setShowLanguagePanel(!showLanguagePanel)}
+              className="p-2 hover:bg-orange-200 rounded-lg transition-colors"
+              title="Language Settings"
+            >
+              <Languages className="w-5 h-5 text-orange-600" />
+            </button>
             
-            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${
-              isConnected 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-red-100 text-red-800'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${
-                isConnected ? 'bg-green-500' : 'bg-red-500'
-              }`}></div>
-              <span className="text-sm font-medium">
-                {isConnected 
-                  ? (language === 'hi' ? 'कनेक्टेड' : 'Connected')
-                  : (language === 'hi' ? 'डिस्कनेक्टेड' : 'Disconnected')
-                }
-              </span>
+            {/* Translation Toggle */}
+            <button
+              onClick={() => setShowTranslations(!showTranslations)}
+              className={`p-2 rounded-lg transition-colors ${
+                showTranslations ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
+              }`}
+              title="Toggle Translations"
+            >
+              <ArrowRightLeft className="w-5 h-5" />
+            </button>
+            
+            <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+              {globalLanguage === 'hi' ? 'AI सक्रिय' : 'AI Active'}
             </div>
             <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
-              {language.toUpperCase()}
+              {globalLanguage.toUpperCase()} → {chatTargetLanguage.toUpperCase()}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50">
+      {/* Messages Area - Scrollable with Fixed Height */}
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto p-4 bg-gray-50 min-h-0 relative"
+        onScroll={handleScroll}
+      >
         {messages.length === 0 && (
           <div className="text-center py-16">
-            <div className="w-20 h-20 bg-gradient-to-r from-saffron to-orange-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Languages className="w-10 h-10 text-white" />
+            <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Languages className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">
-              {language === 'hi' ? 'बातचीत शुरू करें' : 'Start the conversation'}
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              {globalLanguage === 'hi' ? 'बातचीत शुरू करें' : 'Start the conversation'}
             </h3>
-            <p className="text-gray-600 max-w-md mx-auto">
-              {language === 'hi' 
+            <p className="text-gray-600">
+              {globalLanguage === 'hi' 
                 ? 'अपनी भाषा में टाइप करें - AI तुरंत अनुवाद करेगा'
                 : 'Type in your language - AI will translate instantly'
               }
@@ -636,261 +567,230 @@ export default function ChatInterface({
           </div>
         )}
 
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence>
           {messages.map((message, index) => (
             <MessageBubble
               key={message.id || index}
               message={message}
               isOwn={message.sender === userType}
-              language={language}
-              onReply={handleReply}
-              onReact={handleReact}
+              showTranslation={showTranslations && autoTranslate}
               onSpeak={handleSpeak}
-              onCopy={handleCopy}
+              onRetranslate={handleRetranslate}
             />
           ))}
         </AnimatePresence>
-
-        {/* Typing Indicator */}
-        {(demoTyping || typingUsers.size > 0) && (
-          <TypingIndicator users={typingUsers} language={language} />
-        )}
         
         <div ref={messagesEndRef} />
+
+        {/* Scroll to Bottom Button */}
+        <AnimatePresence>
+          {showScrollToBottom && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={scrollToBottom}
+              className="fixed bottom-24 right-6 bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-full shadow-lg z-10 flex items-center space-x-2"
+              title="Scroll to bottom"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+              {messages.length > 5 && (
+                <span className="text-sm font-medium">
+                  {globalLanguage === 'hi' ? 'नीचे जाएं' : 'New messages'}
+                </span>
+              )}
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* AI Suggestion */}
-      <AISuggestion
-        suggestion={negotiationSuggestion}
-        onDismiss={() => setNegotiationSuggestion(null)}
-        onAccept={(suggestion) => {
-          setCurrentMessage(suggestion.suggestion)
-          setNegotiationSuggestion(null)
-        }}
-        language={language}
-      />
-
-      {/* Reply Preview */}
-      {replyingTo && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mx-6 mb-4 bg-white border border-gray-200 rounded-xl p-3 border-l-4 border-saffron shadow-sm"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-500 mb-1">
-                {language === 'hi' ? 'जवाब दे रहे हैं' : 'Replying to'}
-              </p>
-              <p className="text-sm text-gray-900 truncate max-w-xs">
-                {replyingTo.message}
-              </p>
-            </div>
-            <button
-              onClick={() => setReplyingTo(null)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              ×
-            </button>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Input Area */}
-      <div className="bg-white border-t border-gray-200 p-6">
-        {/* Simple Test Chat Buttons */}
-        <div className="mb-4 flex flex-wrap gap-2">
+      {/* Enhanced Input Area - Fixed at Bottom */}
+      <div className="bg-white border-t border-gray-200 p-4 flex-shrink-0">
+        {/* Quick AI Demo Buttons */}
+        <div className="mb-3 flex flex-wrap gap-2">
           <button
-            onClick={() => {
-              const testMessage = {
+            onClick={async () => {
+              const messageText = "Hello! I want to buy fresh tomatoes."
+              let translatedText = messageText
+              
+              if (autoTranslate && globalLanguage !== chatTargetLanguage) {
+                try {
+                  setIsTranslating(true)
+                  translatedText = await translationService.current.translate(
+                    messageText, 
+                    'en', 
+                    chatTargetLanguage
+                  )
+                } catch (error) {
+                  console.error('Demo translation error:', error)
+                } finally {
+                  setIsTranslating(false)
+                }
+              }
+              
+              const msg = {
                 id: Date.now(),
-                message: "Hello! I'm interested in buying tomatoes.",
-                translatedMessage: "नमस्ते! मुझे टमाटर खरीदने में दिलचस्पी है।",
+                message: messageText,
+                translatedMessage: translatedText !== messageText ? translatedText : null,
                 sender: userType,
                 timestamp: new Date(),
-                status: "sent",
-                language: language
-              }
-              setDemoMessages(prev => [...prev, testMessage])
+                language: 'en',
+                targetLanguage: chatTargetLanguage
+              };
+              setDemoMessages(prev => [...prev, msg]);
               
-              // Auto response
-              setTimeout(() => {
-                const response = {
+              setTimeout(async () => {
+                const responseText = "Great! Fresh tomatoes available at ₹40/kg. How much do you need?"
+                let responseTranslation = responseText
+                
+                if (autoTranslate && chatTargetLanguage !== 'en') {
+                  try {
+                    responseTranslation = await translationService.current.translate(
+                      responseText, 
+                      'en', 
+                      chatTargetLanguage
+                    )
+                  } catch (error) {
+                    console.error('Demo response translation error:', error)
+                  }
+                }
+                
+                setDemoMessages(prev => [...prev, {
                   id: Date.now() + 1,
-                  message: "Great! I have fresh tomatoes. ₹40 per kg.",
-                  translatedMessage: "बहुत बढ़िया! मेरे पास ताजे टमाटर हैं। ₹40 प्रति किलो।",
+                  message: responseText,
+                  translatedMessage: responseTranslation !== responseText ? responseTranslation : null,
                   sender: userType === 'vendor' ? 'buyer' : 'vendor',
                   timestamp: new Date(),
-                  status: "delivered",
-                  language: 'en'
-                }
-                setDemoMessages(prev => [...prev, response])
-              }, 1000)
+                  language: 'en',
+                  targetLanguage: chatTargetLanguage
+                }]);
+              }, 1000);
             }}
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm"
+            className="bg-green-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-600 transition-colors disabled:opacity-50"
+            disabled={isTranslating}
           >
-            💬 Test Chat 1
+            🥬 AI Greeting
           </button>
           
           <button
-            onClick={() => {
-              const testMessage = {
+            onClick={async () => {
+              const messageText = "What's your best price for tomatoes?"
+              let translatedText = messageText
+              
+              if (autoTranslate && globalLanguage !== chatTargetLanguage) {
+                try {
+                  setIsTranslating(true)
+                  translatedText = await translationService.current.translate(
+                    messageText, 
+                    'en', 
+                    chatTargetLanguage
+                  )
+                } catch (error) {
+                  console.error('Demo translation error:', error)
+                } finally {
+                  setIsTranslating(false)
+                }
+              }
+              
+              const msg = {
                 id: Date.now(),
-                message: "What's your best price for 10kg onions?",
-                translatedMessage: "10 किलो प्याज के लिए आपका सबसे अच्छा दाम क्या है?",
+                message: messageText,
+                translatedMessage: translatedText !== messageText ? translatedText : null,
                 sender: userType,
                 timestamp: new Date(),
-                status: "sent",
-                language: language
-              }
-              setDemoMessages(prev => [...prev, testMessage])
+                language: 'en',
+                targetLanguage: chatTargetLanguage
+              };
+              setDemoMessages(prev => [...prev, msg]);
               
-              // Auto response
-              setTimeout(() => {
-                const response = {
+              setTimeout(async () => {
+                const responseText = "For bulk orders, I can offer ₹35/kg. Minimum 5kg order. Very fresh quality!"
+                let responseTranslation = responseText
+                
+                if (autoTranslate && chatTargetLanguage !== 'en') {
+                  try {
+                    responseTranslation = await translationService.current.translate(
+                      responseText, 
+                      'en', 
+                      chatTargetLanguage
+                    )
+                  } catch (error) {
+                    console.error('Demo response translation error:', error)
+                  }
+                }
+                
+                setDemoMessages(prev => [...prev, {
                   id: Date.now() + 1,
-                  message: "For 10kg onions, I can give ₹25 per kg. Total ₹250.",
-                  translatedMessage: "10 किलो प्याज के लिए, मैं ₹25 प्रति किलो दे सकता हूं। कुल ₹250।",
+                  message: responseText,
+                  translatedMessage: responseTranslation !== responseText ? responseTranslation : null,
                   sender: userType === 'vendor' ? 'buyer' : 'vendor',
                   timestamp: new Date(),
-                  status: "delivered",
-                  language: 'en'
-                }
-                setDemoMessages(prev => [...prev, response])
-              }, 1500)
+                  language: 'en',
+                  targetLanguage: chatTargetLanguage
+                }]);
+              }, 1200);
             }}
-            className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm"
+            className="bg-blue-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-600 transition-colors disabled:opacity-50"
+            disabled={isTranslating}
           >
-            🥕 Test Chat 2
-          </button>
-          
-          <button
-            onClick={() => {
-              const testMessage = {
-                id: Date.now(),
-                message: "Can you deliver to my location?",
-                translatedMessage: "क्या आप मेरे स्थान पर डिलीवर कर सकते हैं?",
-                sender: userType,
-                timestamp: new Date(),
-                status: "sent",
-                language: language
-              }
-              setDemoMessages(prev => [...prev, testMessage])
-              
-              // Auto response
-              setTimeout(() => {
-                const response = {
-                  id: Date.now() + 1,
-                  message: "Yes! Free delivery for orders above ₹500. Where is your location?",
-                  translatedMessage: "हां! ₹500 से अधिक के ऑर्डर के लिए मुफ्त डिलीवरी। आपका स्थान कहां है?",
-                  sender: userType === 'vendor' ? 'buyer' : 'vendor',
-                  timestamp: new Date(),
-                  status: "delivered",
-                  language: 'en'
-                }
-                setDemoMessages(prev => [...prev, response])
-              }, 1200)
-            }}
-            className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors text-sm"
-          >
-            🚚 Test Chat 3
+            💰 Price Check
           </button>
           
           <button
             onClick={() => setDemoMessages(DEMO_MESSAGES)}
-            className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors text-sm"
+            className="bg-gray-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-gray-600 transition-colors"
           >
-            🔄 Reset Chat
+            🔄 Reset
           </button>
-        </div>
-
-        <div className="flex items-end space-x-4">
-          <div className="flex-1">
-            <div className="relative">
-              <textarea
-                ref={inputRef}
-                value={currentMessage}
-                onChange={handleInputChange}
-                onKeyPress={handleKeyPress}
-                placeholder={
-                  language === 'hi' 
-                    ? 'अपना संदेश टाइप करें... (Enter दबाएं भेजने के लिए)'
-                    : 'Type your message... (Press Enter to send)'
-                }
-                className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-saffron focus:border-transparent resize-none placeholder-gray-500"
-                style={{
-                  color: '#1f2937',
-                  minHeight: '56px',
-                  maxHeight: '120px'
-                }}
-                rows="1"
-              />
-              
-              {/* Input Actions */}
-              <div className="absolute right-3 bottom-3 flex items-center space-x-2">
-                <button
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="Attach file"
-                >
-                  <Paperclip className="w-4 h-4 text-gray-500" />
-                </button>
-                <button
-                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="Add emoji"
-                >
-                  <Smile className="w-4 h-4 text-gray-500" />
-                </button>
-              </div>
-            </div>
-          </div>
           
-          {/* Main Send Button */}
-          <button
-            onClick={handleSend}
-            className="bg-orange-500 hover:bg-orange-600 text-white p-4 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center min-w-[60px]"
-            style={{
-              backgroundColor: '#f97316 !important',
-              color: '#ffffff !important',
-              border: 'none !important',
-              display: 'flex !important',
-              visibility: 'visible !important'
-            }}
-          >
-            <Send className="w-5 h-5" />
-          </button>
+          {isTranslating && (
+            <div className="flex items-center space-x-2 text-sm text-blue-600">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <span>Translating...</span>
+            </div>
+          )}
         </div>
 
-        {/* Backup Send Button */}
-        <div className="mt-2 flex justify-end">
+        {/* Message Input */}
+        <div className="flex items-center space-x-3">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder={globalLanguage === 'hi' ? 'संदेश टाइप करें...' : 'Type your message...'}
+            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900"
+          />
+          
+          {/* SEND BUTTON - ALWAYS VISIBLE */}
           <button
             onClick={handleSend}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium"
-            style={{
-              backgroundColor: '#3b82f6 !important',
-              color: '#ffffff !important',
-              display: 'block !important',
-              visibility: 'visible !important'
-            }}
+            disabled={!inputValue.trim() || isTranslating}
+            className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2 min-w-[100px]"
           >
-            📤 SEND MESSAGE
+            {isTranslating ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span>Sending...</span>
+              </>
+            ) : (
+              <>
+                <Send className="w-5 h-5" />
+                <span>{globalLanguage === 'hi' ? 'भेजें' : 'Send'}</span>
+              </>
+            )}
           </button>
         </div>
-
-        {/* Status Bar */}
-        <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-          <span>
-            {language === 'hi' 
-              ? 'संदेश स्वचालित रूप से अनुवादित होंगे'
-              : 'Messages will be automatically translated'
-            }
-          </span>
-          <span>
-            {isConnected 
-              ? (language === 'hi' ? 'रियल-टाइम चैट सक्रिय' : 'Real-time chat active')
-              : (language === 'hi' ? 'पुनः कनेक्ट करने की कोशिश कर रहे हैं...' : 'Attempting to reconnect...')
-            }
-          </span>
+        
+        <div className="mt-2 text-xs text-gray-500 text-center">
+          {globalLanguage === 'hi' ? 'AI अनुवाद सक्रिय - वास्तविक समय में अनुवाद' : 'AI Translation Active - Real-time translation'}
+          {autoTranslate && (
+            <span className="ml-2 text-green-600">
+              • Auto-translate: {globalLanguage.toUpperCase()} ↔ {chatTargetLanguage.toUpperCase()}
+            </span>
+          )}
         </div>
       </div>
     </div>

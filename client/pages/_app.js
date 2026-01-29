@@ -2,6 +2,7 @@ import '../styles/globals.css'
 import { createClient } from '@supabase/supabase-js'
 import { useState, useEffect, createContext, useContext } from 'react'
 import ErrorBoundary from '../components/ErrorBoundary'
+import { LanguageProvider } from '../contexts/LanguageContext'
 
 // Create Supabase client with proper error handling
 const createSupabaseClient = () => {
@@ -74,9 +75,11 @@ export default function App({ Component, pageProps }) {
 
   return (
     <ErrorBoundary>
-      <SupabaseContext.Provider value={value}>
-        <Component {...pageProps} />
-      </SupabaseContext.Provider>
+      <LanguageProvider>
+        <SupabaseContext.Provider value={value}>
+          <Component {...pageProps} />
+        </SupabaseContext.Provider>
+      </LanguageProvider>
     </ErrorBoundary>
   )
 }

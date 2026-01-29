@@ -6,7 +6,8 @@ A comprehensive multilingual marketplace platform connecting Indian vendors and 
 
 ![Multilingual Mandi](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![Languages](https://img.shields.io/badge/Languages-7%20Indian%20Languages-blue)
-![Tests](https://img.shields.io/badge/Tests-37%2F37%20Passing-success)
+![Tests](https://img.shields.io/badge/Tests-64%2F64%20Passing-success)
+![Version](https://img.shields.io/badge/Version-1.0.0-orange)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ## 🌟 Complete Feature Set
@@ -19,6 +20,14 @@ A comprehensive multilingual marketplace platform connecting Indian vendors and 
 - **📊 Advanced Analytics**: Comprehensive business metrics and performance tracking
 - **📱 Mobile-First Design**: Fully responsive across all devices and screen sizes
 - **🔐 Secure Authentication**: Complete user management with role-based access control
+
+### 🚀 **Latest Updates (v1.0.0)**
+- **🔧 Translation System Fix**: Resolved CORS issues by routing API calls through server
+- **🛒 Enhanced Buyer Dashboard**: Improved cart functionality with quantity controls and better UX
+- **🐛 ImpactSection Fix**: Resolved React component errors and improved test coverage
+- **💬 Chat Improvements**: Fixed scrolling issues and enhanced vendor/seller chat support
+- **🔒 Security Hardening**: API key protection and git-ready deployment
+- **🧪 Complete Testing**: All 64 tests passing (37 client + 27 server)
 
 ### 🚀 **Advanced Features**
 - **⚡ Exploration Mode**: Direct dashboard access without authentication barriers

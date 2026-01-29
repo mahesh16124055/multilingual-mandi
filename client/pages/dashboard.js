@@ -729,7 +729,7 @@ export default function Dashboard() {
                   { id: 'settings', icon: Settings, labelKey: 'settings' }
                 ] : [
                   { id: 'dashboard', icon: ShoppingCart, labelKey: 'dashboard' },
-                  { id: 'browse', icon: ModernGlobe, labelKey: 'browse' },
+                  { id: 'browse', icon: Search, labelKey: 'browse' },
                   { id: 'orders', icon: Truck, labelKey: 'myOrders' },
                   { id: 'chat', icon: ModernChat, labelKey: 'chat' },
                   { id: 'impact', icon: Heart, labelKey: 'impact' },
@@ -802,7 +802,7 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-1 lg:space-x-3">
+                <div className="flex items-center space-x-2 lg:space-x-3">{/* Reduced spacing on mobile */}
                   {/* User Profile Info */}
                   <div className="hidden md:flex items-center space-x-2 px-3 py-1 bg-gray-50 rounded-lg">
                     <div className="w-6 h-6 bg-gradient-to-r from-saffron to-green rounded-full flex items-center justify-center">
@@ -834,7 +834,7 @@ export default function Dashboard() {
                   {/* Voice Toggle */}
                   <button
                     onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-                    className={`p-2 rounded-lg transition-colors ${
+                    className={`hidden sm:flex p-2 rounded-lg transition-colors ${
                       isVoiceEnabled 
                         ? 'bg-red-50 text-red-600 hover:bg-red-100' 
                         : 'hover:bg-gray-100 text-gray-600'
@@ -846,14 +846,14 @@ export default function Dashboard() {
                   {/* Price Calculator Toggle - Hidden on small screens */}
                   <button
                     onClick={() => setShowPriceCalculator(!showPriceCalculator)}
-                    className="hidden sm:flex btn-primary text-xs lg:text-sm px-2 lg:px-4 py-2 items-center"
+                    className="hidden md:flex btn-primary text-xs lg:text-sm px-2 lg:px-4 py-2 items-center"
                   >
                     <Calculator className="w-3 h-3 lg:w-4 lg:h-4 mr-1 lg:mr-2" />
-                    <span className="hidden md:inline">{getDashboardTranslation(selectedLanguage, 'priceCalculator')}</span>
+                    <span className="hidden lg:inline">{getDashboardTranslation(selectedLanguage, 'priceCalculator')}</span>
                   </button>
 
                   {/* Language Selector */}
-                  <div className="hidden sm:block">
+                  <div className="hidden md:block">
                     <LanguageSelector 
                       selectedLanguage={selectedLanguage}
                       onLanguageChange={setSelectedLanguage}

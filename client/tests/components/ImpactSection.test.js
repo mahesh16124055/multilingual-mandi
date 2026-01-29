@@ -6,7 +6,8 @@ import ImpactSection from '../../components/ImpactSection'
 // Mock framer-motion to avoid animation issues in tests
 jest.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }) => <div {...props}>{children}</div>,
+    div: ({ children, whileHover, whileTap, initial, animate, transition, ...props }) => <div {...props}>{children}</div>,
+    button: ({ children, whileHover, whileTap, initial, animate, transition, ...props }) => <button {...props}>{children}</button>,
   },
   AnimatePresence: ({ children }) => <>{children}</>,
 }))
