@@ -23,6 +23,17 @@ class TranslationService {
     return languages[code] || 'English'
   }
 
+  // Detect language from text script
+  detectLanguage(text) {
+    if (!text) return 'en'
+    if (/[\u0900-\u097F]/.test(text)) return 'hi' // Devanagari (Hindi, Marathi)
+    if (/[\u0B80-\u0BFF]/.test(text)) return 'ta' // Tamil
+    if (/[\u0C00-\u0C7F]/.test(text)) return 'te' // Telugu
+    if (/[\u0C80-\u0CFF]/.test(text)) return 'kn' // Kannada
+    if (/[\u0980-\u09FF]/.test(text)) return 'bn' // Bengali
+    return 'en' // Default to English
+  }
+
   // Create cache key
   getCacheKey(text, fromLang, toLang) {
     return `${text}_${fromLang}_${toLang}`

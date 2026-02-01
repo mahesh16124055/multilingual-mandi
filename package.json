@@ -13,7 +13,6 @@
     "test": "cd client && npm test && cd ../server && npm test",
     "test:client": "cd client && npm test",
     "test:server": "cd server && npm test",
-    "test:quick": "node quick-feature-test.js",
     "lint": "cd client && npm run lint",
     "deploy": "npm run build && npm run start"
   },

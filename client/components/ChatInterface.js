@@ -103,7 +103,9 @@ export default function ChatInterface({
   targetLanguage = 'en', // New prop: The language of the OTHER user
   userType = 'buyer',
   isConnected = true,
-  enableDemo = true
+  enableDemo = true,
+  negotiationSuggestion = null,
+  setNegotiationSuggestion = () => { }
 }) {
   const {
     globalLanguage,
@@ -290,6 +292,67 @@ export default function ChatInterface({
 
         <div ref={messagesEndRef} />
       </div>
+
+      {/* AI Negotiation Suggestion */}
+      {negotiationSuggestion && (
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="px-4 pt-2"
+          >
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 shadow-sm relative">
+              <div className="flex items-start space-x-3">
+                <div className="bg-blue-100 p-2 rounded-full">
+                  <Bot className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-blue-900 mb-1">
+                    {globalLanguage === 'hi' ? 'AI सुझाव' : 'AI Suggestion'}
+                  </h4>
+                  <p className="text-sm text-blue-800 mb-2">
+                    {negotiationSuggestion.suggestion || negotiationSuggestion.reasoning}
+                  </p>
+
+                  {negotiationSuggestion.counterOffer && (
+                    <div className="text-xs font-medium text-blue-700 mb-2">
+                      Suggested Price: ₹{negotiationSuggestion.counterOffer}
+                    </div>
+                  )}
+
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => {
+                        setInputValue(negotiationSuggestion.reasoning || negotiationSuggestion.suggestion)
+                        setNegotiationSuggestion(null)
+                      }}
+                      className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      {globalLanguage === 'hi' ? 'उपयोग करें' : 'Use this'}
+                    </button>
+                    <button
+                      onClick={() => setNegotiationSuggestion(null)}
+                      className="text-blue-600 text-xs px-3 py-1.5 rounded-md hover:bg-blue-100 transition-colors"
+                    >
+                      {globalLanguage === 'hi' ? 'खारिज करें' : 'Dismiss'}
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setNegotiationSuggestion(null)}
+                  className="text-gray-400 hover:text-gray-600 absolute top-2 right-2"
+                >
+                  <span className="sr-only">Close</span>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      )}
 
       {/* Input Area */}
       <div className="p-4 border-t border-gray-200 bg-white">

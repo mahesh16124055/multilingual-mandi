@@ -81,13 +81,6 @@ const useSocketConnection = (type, selectedLanguage, session, isExplorationMode)
     if (!type) return
 
     const connectSocket = () => {
-      // In exploration mode, simulate connection without actual socket
-      if (isExplorationMode) {
-        setIsConnected(true)
-        setConnectionQuality('excellent')
-        return () => { }
-      }
-
       const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
         transports: ['websocket', 'polling'],
         timeout: SOCKET_CONFIG.TIMEOUT,
@@ -97,6 +90,10 @@ const useSocketConnection = (type, selectedLanguage, session, isExplorationMode)
         reconnectionDelay: SOCKET_CONFIG.RECONNECT_DELAY,
         reconnectionDelayMax: SOCKET_CONFIG.RECONNECT_DELAY_MAX
       })
+
+      // In exploration mode, we still want to connect for the "Live Demo" feel
+      // but we treat the user as anonymous
+
 
       // Connection quality monitoring
       const pingInterval = setInterval(() => {
@@ -489,12 +486,21 @@ export default function Dashboard() {
     }
 
     try {
+      // Auto-detect language of the typed text
+      // This ensures if a user has UI in English but types in Hindi, we mark it as Hindi
+      const translationService = new TranslationService()
+      const detectedLang = translationService.detectLanguage(messageText)
+
+      // If detected language is English (default), fall back to selectedLanguage if it's NOT English
+      // This covers cases where detection might be ambiguous but user explicit preference is set
+      const finalLang = detectedLang !== 'en' ? detectedLang : selectedLanguage
+
       // Create message data
       const messageData = {
         id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         message: messageText,
         sender: type,
-        language: selectedLanguage,
+        language: finalLang,
         targetLanguage: effectiveTargetLang,
         timestamp: new Date(),
         translatedMessage: null
@@ -533,8 +539,11 @@ export default function Dashboard() {
         }
       }, 100)
 
-      // Generate AI response based on user type
-      if (isExplorationMode) {
+      // Send to server (Always send if connected, even in demo mode)
+      if (socket && isConnected) {
+        socket.emit('message', messageData)
+      } else if (isExplorationMode) {
+        // Fallback: Only generate fake bot response if socket is NOT connected
         setTimeout(async () => {
           const vendorResponses = [
             'I have fresh vegetables available today!',
@@ -588,12 +597,7 @@ export default function Dashboard() {
             logger.error('AI translation error:', error)
           }
 
-        }, 1500) // 1.5 second delay for AI response
-      }
-
-      // Send to server (only in non-exploration mode)
-      if (socket && isConnected) {
-        socket.emit('message', messageData)
+        }, 1500)
       }
 
       // Analytics tracking
@@ -605,18 +609,8 @@ export default function Dashboard() {
         })
       }
 
-      // AI suggestion trigger
-      if (messageText.toLowerCase().includes('price') ||
-        messageText.toLowerCase().includes('₹') ||
-        messageText.toLowerCase().includes('rate')) {
+      // Server handling AI suggestions now
 
-        setTimeout(() => {
-          const suggestion = generateAdvancedNegotiationSuggestion(messageText, type)
-          if (suggestion) {
-            setNegotiationSuggestion(suggestion)
-          }
-        }, 1000)
-      }
     } catch (error) {
       logger.error('Error sending message:', error)
       // Rollback optimistic update
@@ -635,36 +629,15 @@ export default function Dashboard() {
     }
   }, [currentMessage, socket, isConnected, type, selectedLanguage, setMessages, isExplorationMode])
 
-  const generateAdvancedNegotiationSuggestion = useCallback((message, userType) => {
-    const priceMatch = message.match(/₹(\d+)/g)
-    if (priceMatch) {
-      const price = parseInt(priceMatch[0].replace('₹', ''))
-      const marketAnalysis = {
-        currentMarketRate: price * (0.95 + Math.random() * 0.1),
-        trend: ['rising', 'stable', 'falling'][Math.floor(Math.random() * 3)],
-        confidence: 0.85 + Math.random() * 0.1
-      }
-
-      if (userType === 'buyer') {
-        return {
-          type: 'counter',
-          suggestion: `Market analysis suggests ₹${Math.round(marketAnalysis.currentMarketRate)}/kg. Consider offering ₹${price + 2}/kg`,
-          reason: `Based on ${marketAnalysis.trend} market trend with ${Math.round(marketAnalysis.confidence * 100)}% confidence`,
-          marketData: marketAnalysis,
-          priority: 'high'
-        }
-      } else {
-        return {
-          type: 'accept',
-          suggestion: `Competitive pricing! Market rate is ₹${Math.round(marketAnalysis.currentMarketRate)}/kg`,
-          reason: `Your price aligns with current market conditions`,
-          marketData: marketAnalysis,
-          priority: 'medium'
-        }
-      }
+  // Socket event handlers
+  const handlePriceUpdate = (priceData) => {
+    if (priceData && (priceData.price || priceData.suggestedPrice)) {
+      setCurrentPrice(priceData)
     }
-    return null
-  }, [])
+  }
+
+  // Removed generateAdvancedNegotiationSuggestion - using server-side logic
+
 
   // Advanced scroll management - debounced to prevent lag
   const scrollTimeoutRef = useRef(null)
@@ -1528,13 +1501,13 @@ export default function Dashboard() {
 
               {/* Right Sidebar - Hidden on mobile */}
               <AnimatePresence>
-                {(showPriceCalculator || isVoiceEnabled || currentPrice) && (
+                {(showPriceCalculator || isVoiceEnabled) && (
                   <motion.aside
-                    initial={{ x: 400, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    exit={{ x: 400, opacity: 0 }}
-                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                    className="hidden lg:flex w-96 bg-white border-l border-gray-200 flex-col shadow-lg"
+                    initial={{ x: "100%" }}
+                    animate={{ x: 0 }}
+                    exit={{ x: "100%" }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    className="fixed top-16 right-0 bottom-0 w-96 bg-white border-l border-gray-200 shadow-2xl z-50 overflow-hidden flex flex-col"
                   >
                     <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-saffron-subtle to-green-subtle">
                       <div className="flex items-center justify-between">
@@ -1659,37 +1632,39 @@ export default function Dashboard() {
                     </div>
                   </motion.aside>
                 )}
-              </AnimatePresence>
-            </div>
-          </main>
-        </div>
+              </AnimatePresence >
+            </div >
+          </main >
+        </div >
 
         {/* Notifications Toast */}
-        <AnimatePresence>
-          {notifications.map((notification) => (
-            <motion.div
-              key={notification.id}
-              initial={{ opacity: 0, x: 400 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 400 }}
-              className="fixed top-4 right-4 z-50 bg-white border border-gray-200 rounded-xl p-4 max-w-sm shadow-xl"
-            >
-              <div className="flex items-center space-x-3">
-                <div className={`w-2 h-2 rounded-full ${notification.type === 'error' ? 'bg-red-500' :
-                  notification.type === 'success' ? 'bg-green-500' : 'bg-blue-500'
-                  }`}></div>
-                <p className="text-gray-900 text-sm">{notification.message}</p>
-                <button
-                  onClick={() => setNotifications(prev => prev.filter(n => n.id !== notification.id))}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+        < AnimatePresence >
+          {
+            notifications.map((notification) => (
+              <motion.div
+                key={notification.id}
+                initial={{ opacity: 0, x: 400 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 400 }}
+                className="fixed top-4 right-4 z-50 bg-white border border-gray-200 rounded-xl p-4 max-w-sm shadow-xl"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className={`w-2 h-2 rounded-full ${notification.type === 'error' ? 'bg-red-500' :
+                    notification.type === 'success' ? 'bg-green-500' : 'bg-blue-500'
+                    }`}></div>
+                  <p className="text-gray-900 text-sm">{notification.message}</p>
+                  <button
+                    onClick={() => setNotifications(prev => prev.filter(n => n.id !== notification.id))}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </motion.div>
+            ))
+          }
+        </AnimatePresence >
+      </div >
     </>
   )
 }

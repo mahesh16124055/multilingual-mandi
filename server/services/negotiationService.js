@@ -23,27 +23,30 @@ class NegotiationService {
       }
 
       const prompt = `
-        You are an expert negotiator in an Indian agricultural marketplace ("Mandi"). 
-        Role: Advisor to a ${userType} (farmer/vendor or buyer)
-        Context:
-        - Item being discussed: ${context.crop || 'produce'}
-        - Market Price: ₹${context.marketPrice || 'variable'}/kg
-        - User's Goal: ${userType === 'vendor' ? 'Get the best price while maintaining relationship' : 'Get a fair deal without insulting the farmer'}
+        You are an intelligent AI Advisor in a real-time Indian Agricultural Mandi (Marketplace).
         
-        Current Message received from opponent: "${message}"
+        YOUR GOAL: Help the "${userType.toUpperCase()}" negotiate the best deal for "${context.crop || 'produce'}" while maintaining good business relations.
         
-        Task:
-        1. Analyze the sentiment (Is it aggressive? Polite? A firm offer?)
-        2. Suggest a specific counter-offer price (if a price was mentioned).
-        3. Generate a short, cultural, polite, and persuasive response string in English (and Hindi/Hinglish if appropriate).
+        MARKET CONTEXT:
+        - Product: ${context.crop || 'produce'}
+        - Current Market Rate: ₹${context.marketPrice || 'variable'} / kg
+        - Location: ${context.location || 'Indian Mandi'}
+        - Quality: ${context.quality || 'Standard'}
         
-        Output JSON format:
+        OPPONENT'S MESSAGE: "${message}"
+
+        STRATEGY TO USE:
+        - If USER is SELLER (Vendor): Emphasize quality, freshness, and rising transport costs. Don't drop price too easily. Use terms like "fresh maal", "top quality", "market tight hai".
+        - If USER is BUYER: Point out standard market rates, ask for bulk discount, or mention "other vendor offering less". Use terms like "thoda kam karo", "bulk order hai".
+        - Be concise. Mandi chats are fast.
+        
+        OUTPUT REQUIREMENT (JSON ONLY):
         {
-          "type": "price_objection" | "agreement" | "counter_offer" | "general",
-          "suggestion": "Short advice to the user...",
-          "response_text": "Suggested reply message...",
+          "type": "counter_offer" | "accept" | "reject" | "inquiry",
+          "suggestion": "Brief strategic advice (e.g., 'He is lowballing, hold firm at ₹${context.marketPrice}').",
+          "response_text": "A perfect, natural text message response in English/Hinglish (e.g., 'Sir, market rate is ₹${context.marketPrice}. Quality is A1. I can do ₹${Math.round(context.marketPrice * 0.98)} for you.').",
           "sentiment": "positive" | "neutral" | "negative",
-          "counter_offer_price": number | null
+          "counter_offer_price": ${context.marketPrice ? Math.round(context.marketPrice * (userType === 'buyer' ? 0.9 : 0.98)) : 'null'}
         }
       `
 
@@ -102,9 +105,10 @@ class NegotiationService {
         reasoning: isHigh ? "Above market rate" : "Fair value"
       }
     } else {
+      // Vendor logic: Opponent is Buyer offering 'price'
       return {
         type: 'price',
-        suggestion: isLow ? `Too low. Market is ₹${marketPrice}. Stick to ₹${price}` : "Good offer, accept it.",
+        suggestion: isLow ? `Buyer offer (₹${price}) is too low. Market is ₹${marketPrice}. Counter with ₹${Math.round(marketPrice * 0.95)}` : "Good offer, accept it.",
         counterOffer: isLow ? Math.round(marketPrice * 0.95) : null,
         reasoning: isLow ? "Below market rate" : "Good profit margin"
       }

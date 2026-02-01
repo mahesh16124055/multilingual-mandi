@@ -20,7 +20,7 @@ class PriceService {
       'mustard': parseInt(process.env.BASE_PRICE_MUSTARD) || 48,
       'sunflower': parseInt(process.env.BASE_PRICE_SUNFLOWER) || 52
     }
-    
+
     // Location multipliers - should be fetched from database
     this.locationMultipliers = {
       'delhi': parseFloat(process.env.LOCATION_MULTIPLIER_DELHI) || 1.2,
@@ -39,7 +39,7 @@ class PriceService {
       'indore': parseFloat(process.env.LOCATION_MULTIPLIER_INDORE) || 0.95,
       'nagpur': parseFloat(process.env.LOCATION_MULTIPLIER_NAGPUR) || 0.9
     }
-    
+
     // Quality multipliers - configurable via environment
     this.qualityMultipliers = {
       'premium': parseFloat(process.env.QUALITY_MULTIPLIER_PREMIUM) || 1.3,
@@ -106,10 +106,10 @@ class PriceService {
 
       // Calculate final price
       const finalPrice = Math.round(
-        basePrice * 
-        locationMultiplier * 
-        qualityMultiplier * 
-        seasonalMultiplier * 
+        basePrice *
+        locationMultiplier *
+        qualityMultiplier *
+        seasonalMultiplier *
         trendMultiplier
       )
 
@@ -159,21 +159,21 @@ class PriceService {
     try {
       // Extract crop and price information from message
       const extractedData = this.extractPriceInfo(message)
-      
+
       if (extractedData.crop) {
         const suggestion = await this.calculatePrice({
           crop: extractedData.crop,
           location: extractedData.location || 'hyderabad',
           quality: extractedData.quality || 'grade-b'
         })
-        
+
         return {
           ...suggestion,
           suggestion: true,
           confidence: extractedData.confidence
         }
       }
-      
+
       return null
     } catch (error) {
       console.error('Price suggestion error:', error)
@@ -184,30 +184,40 @@ class PriceService {
   // Extract price information from text message
   extractPriceInfo(message) {
     const lowerMessage = message.toLowerCase()
-    
+
     // Crop detection
     const crops = Object.keys(this.basePrice)
-    const detectedCrop = crops.find(crop => 
-      lowerMessage.includes(crop) || 
+    const detectedCrop = crops.find(crop =>
+      lowerMessage.includes(crop) ||
       lowerMessage.includes(this.getCropHindiName(crop))
     )
-    
+
     // Location detection
     const locations = Object.keys(this.locationMultipliers)
-    const detectedLocation = locations.find(location => 
+    const detectedLocation = locations.find(location =>
       lowerMessage.includes(location)
     )
-    
+
     // Quality detection
     const qualities = Object.keys(this.qualityMultipliers)
-    const detectedQuality = qualities.find(quality => 
+    const detectedQuality = qualities.find(quality =>
       lowerMessage.includes(quality.replace('-', ' '))
     )
-    
-    // Price detection
-    const priceMatch = message.match(/₹(\d+)/g)
-    const detectedPrice = priceMatch ? parseInt(priceMatch[0].replace('₹', '')) : null
-    
+
+    // Enhanced price detection
+    // Matches: ₹50, 50rs, 50 rs, 50/-, 50 rupees, 50
+    const priceMatch = message.match(/(?:₹|Rs\.?|INR)\s*(\d+)|(\d+)\s*(?:rs|rupees|\/-)?/i)
+
+    let detectedPrice = null
+    if (priceMatch) {
+      // priceMatch[1] is for prefixed currency (₹50)
+      // priceMatch[2] is for suffixed currency or plain number (50rs)
+      const rawPrice = priceMatch[1] || priceMatch[2]
+      if (rawPrice && !isNaN(parseInt(rawPrice))) {
+        detectedPrice = parseInt(rawPrice)
+      }
+    }
+
     return {
       crop: detectedCrop || null,
       location: detectedLocation || null,
@@ -241,7 +251,7 @@ class PriceService {
       'tomato': { 'monsoon': 1.2, 'winter': 0.8, 'summer': 1.1 },
       'onion': { 'monsoon': 1.3, 'winter': 0.9, 'summer': 1.0 }
     }
-    
+
     const currentSeason = this.getCurrentSeason()
     return seasonalData[crop]?.[currentSeason] || 1.0
   }
@@ -270,29 +280,29 @@ class PriceService {
   async getHistoricalPrices(crop, location, days = 30) {
     const prices = []
     const basePrice = this.basePrice[crop.toLowerCase()] || 25
-    
+
     for (let i = days; i >= 0; i--) {
       const date = new Date()
       date.setDate(date.getDate() - i)
-      
+
       // Add some random variation
       const variation = 0.9 + (Math.random() * 0.2) // ±10%
       const price = Math.round(basePrice * variation)
-      
+
       prices.push({
         date: date.toISOString().split('T')[0],
         price,
         volume: Math.floor(Math.random() * 1000) + 100
       })
     }
-    
+
     return prices
   }
 
   // Get price alerts
   async getPriceAlerts(crop, targetPrice, location) {
     const currentPrice = await this.getCurrentPrice(crop, location)
-    
+
     return {
       crop,
       location,

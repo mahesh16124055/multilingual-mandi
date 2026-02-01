@@ -22,12 +22,13 @@ A comprehensive multilingual marketplace platform connecting Indian vendors and 
 - **🔐 Secure Authentication**: Complete user management with role-based access control
 
 ### 🚀 **Latest Updates (v1.0.0)**
-- **🔧 Translation System Fix**: Resolved CORS issues by routing API calls through server
+- **🔧 Translation System**: Hybrid engine using **Google Gemini 2.0** (Primary) and Hugging Face (Fallback)
+- **🧠 AI Negotiation 2.0**: Context-aware, role-playing AI using Gemini for realistic Mandi bargaining
+- **💰 Smart Pricing Engine**: Regex-based price detection handling diverse currencies (₹500, 500rs, etc.)
 - **🛒 Enhanced Buyer Dashboard**: Improved cart functionality with quantity controls and better UX
-- **🐛 ImpactSection Fix**: Resolved React component errors and improved test coverage
-- **💬 Chat Improvements**: Fixed scrolling issues and enhanced vendor/seller chat support
+- **💬 Chat Improvements**: Real-time translation with "Language Handshake" for seamless cross-lingual chat
 - **🔒 Security Hardening**: API key protection and git-ready deployment
-- **🧪 Complete Testing**: All 64 tests passing (37 client + 27 server)
+
 
 ### 🚀 **Advanced Features**
 - **⚡ Exploration Mode**: Direct dashboard access without authentication barriers
@@ -90,7 +91,8 @@ The app embraces the **Viksit Bharat 2047** vision with:
 - **Node.js** with Express framework
 - **Socket.io** for WebSocket real-time connections
 - **Supabase** for database, authentication, and real-time subscriptions
-- **Hugging Face Transformers** for AI-powered translation
+- **Google Gemini API** for advanced Negotiation logic & Translation
+- **Hugging Face Transformers** for fallback translation models
 - **Advanced ML models** for price prediction and market analysis
 
 ### Database & Authentication
@@ -135,9 +137,21 @@ npm run install-all
 ```
 
 3. **Environment Setup**
-Create `.env.local` files in both client and server directories:
+Simple setup! Just copy the example files and add your keys:
 
-**client/.env.local**
+**Backend (Server)**
+```bash
+cp server/.env.example server/.env
+```
+Edit `server/.env` and add your `GEMINI_API_KEY`.
+
+**Frontend (Client)**
+```bash
+cp client/.env.local.example client/.env.local
+```
+(Optional) Edit `client/.env.local` if you have Supabase keys, otherwise defaults work for Demo Mode.
+
+**Manual Configuration (Reference):**
 ```
 # Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
@@ -172,8 +186,9 @@ SUPABASE_SERVICE_KEY=your_supabase_service_key
 PORT=3001
 NODE_ENV=development
 
-# AI Translation Services
+# AI Translation & Negotiation Services
 HUGGINGFACE_API_KEY=your_hf_api_key
+GEMINI_API_KEY=AIzaSy_your_gemini_key_here
 
 # Feature Flags
 ENABLE_TRANSLATION=true
@@ -181,11 +196,15 @@ ENABLE_PRICE_PREDICTION=true
 ENABLE_ANALYTICS=true
 ```
 
-**Get your Hugging Face API key:**
-1. Visit [https://huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
-2. Create account and generate a "Read" token
-3. Copy the token (starts with `hf_...`)
-4. Add it to your `.env` file
+**Get your API keys:**
+1. **Gemini API (Required for Negotiation):**
+   - Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+   - Create generic API key
+   - Add to `GEMINI_API_KEY` in `.env`
+2. **Hugging Face (Optional/Fallback):**
+   - Visit [Settings > Tokens](https://huggingface.co/settings/tokens)
+   - Create "Read" token
+   - Add to `HUGGINGFACE_API_KEY`
 
 4. **Database Setup**
 Run the SQL scripts in `database/` folder in your Supabase dashboard.
@@ -238,12 +257,8 @@ multilingual-mandi/
 │   └── index.js            # Main server application
 ├── database/               # Database schema and migrations
 │   └── schema.sql         # PostgreSQL schema
-├── docs/                   # Comprehensive documentation
-│   ├── HOSTING_GUIDE.md   # Deployment instructions
-│   ├── DEMO_GUIDE.md      # Demo presentation guide
-│   ├── AUTHENTICATION_SYSTEM.md # Auth documentation
-│   └── EXPLORATION_MODE_COMPLETE.md # Feature guide
-└── README.md              # This file
+├── README.md              # This file
+```
 ```
 
 ## 🌐 Deployment
@@ -338,24 +353,7 @@ node pre-demo-check.js
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
-## 📚 Documentation & Guides
 
-### **Core Documentation**
-- [**EXPLORATION_MODE_COMPLETE.md**](EXPLORATION_MODE_COMPLETE.md) - Complete exploration mode guide
-- [**AUTHENTICATION_SYSTEM.md**](AUTHENTICATION_SYSTEM.md) - Authentication system documentation
-- [**HOSTING_GUIDE.md**](HOSTING_GUIDE.md) - Complete deployment instructions
-- [**DEMO_GUIDE.md**](DEMO_GUIDE.md) - Presentation and demo guide
-
-### **Technical Documentation**
-- [**TEST_REPORT.md**](TEST_REPORT.md) - Comprehensive testing results
-- [**LANGUAGE_SELECTOR_TEST_REPORT.md**](LANGUAGE_SELECTOR_TEST_REPORT.md) - Language feature testing
-- [**DEPLOYMENT.md**](DEPLOYMENT.md) - Advanced deployment options
-- [**CONTRIBUTING.md**](CONTRIBUTING.md) - Development guidelines
-
-### **Setup Guides**
-- [**setup-huggingface.md**](setup-huggingface.md) - AI translation setup
-- [**NETLIFY_DEPLOYMENT.md**](NETLIFY_DEPLOYMENT.md) - Netlify deployment guide
-- [**push-to-github.md**](push-to-github.md) - Git repository setup
 
 ## 🔒 Security
 

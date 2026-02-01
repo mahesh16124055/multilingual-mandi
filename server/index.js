@@ -52,6 +52,25 @@ const limiter = rateLimit({
 })
 app.use('/api/', limiter)
 
+// API Routes
+app.post('/api/translate', async (req, res) => {
+  try {
+    const { text, fromLang, toLang } = req.body
+
+    // Validate request
+    if (!text || !fromLang || !toLang) {
+      return res.status(400).json({ error: 'Missing required fields' })
+    }
+
+    const translation = await translationService.translate(text, fromLang, toLang)
+    res.json({ translatedText: translation })
+
+  } catch (error) {
+    logger.error('API Translation error:', error)
+    res.status(500).json({ error: 'Translation failed' })
+  }
+})
+
 // Store active connections
 const activeConnections = new Map()
 const activeRooms = new Map()
@@ -59,7 +78,7 @@ const activeRooms = new Map()
 // Socket.io connection handling
 io.on('connection', (socket) => {
   logger.log('User connected:', socket.id)
-  
+
   // Store connection info
   activeConnections.set(socket.id, {
     socketId: socket.id,
@@ -84,11 +103,11 @@ io.on('connection', (socket) => {
         connection.language = userData.language
         connection.userId = userData.userId
       }
-      
+
       // Join a room based on user type (for matching vendors and buyers)
       const roomName = `${userData.type}_${userData.language}`
       socket.join(roomName)
-      
+
       logger.log(`User ${socket.id} joined as ${userData.type} speaking ${userData.language}`)
     } catch (error) {
       logger.error('Error handling user join:', error)
@@ -108,7 +127,7 @@ io.on('connection', (socket) => {
       }
 
       const sanitizedMessage = validation.sanitized.message
-      
+
       // Store message in database
       try {
         const { data, error } = await supabase
@@ -149,12 +168,34 @@ io.on('connection', (socket) => {
           }
 
           // Generate negotiation suggestion
+          // First, try to get specific crop context from the message
+          const priceInfo = priceService.extractPriceInfo(sanitizedMessage)
+          let negotiationContext = { marketPrice: 'variable', crop: 'produce' }
+
+          if (priceInfo.crop) {
+            const marketData = await priceService.getCurrentPrice(priceInfo.crop, 'hyderabad') // Default loc
+            negotiationContext = {
+              crop: priceInfo.crop,
+              marketPrice: marketData.finalPrice,
+              quality: 'grade-b', // Assume average quality for initial context
+              location: 'hyderabad'
+            }
+          }
+
           const suggestion = await negotiationService.generateSuggestion(
             sanitizedMessage,
-            messageData.sender
+            messageData.sender === 'buyer' ? 'vendor' : 'buyer', // Suggestion for the RECIPIENT
+            negotiationContext
           )
           if (suggestion) {
-            socket.emit('negotiationSuggestion', suggestion)
+            // Broadcast to the room (or specific recipient if possible, but room is ok for now as long as client filters)
+            // Actually, we should emit to the room but the client needs to know WHO the suggestion is for.
+            // But current implementation emits to the sender's socket? 
+            // socket.emit sends to the SENDER.
+            // We want to send to the RECIPIENT.
+
+            // If we use socket.broadcast.emit, it goes to everyone ELSE (which is the recipient in a 2-person chat)
+            socket.broadcast.emit('negotiationSuggestion', suggestion)
           }
         } catch (suggestionError) {
           logger.error('Error generating suggestions:', suggestionError)
@@ -225,7 +266,7 @@ io.on('connection', (socket) => {
         translationData.fromLang,
         translationData.toLang
       )
-      
+
       socket.emit('translated', {
         originalText: translationData.text,
         translatedText: translation,
@@ -252,15 +293,21 @@ function containsPriceKeywords(message) {
     'मूल्य', 'दर', 'कीमत', 'रुपये',
     'விலை', 'ధర', 'ಬೆಲೆ', 'किंमत', 'দাম'
   ]
-  
+
   const lowerMessage = message.toLowerCase()
-  return priceKeywords.some(keyword => lowerMessage.includes(keyword))
+  // Check for keywords OR just digits (potential price)
+  return priceKeywords.some(keyword => lowerMessage.includes(keyword)) || /\d+/.test(message)
 }
+
+// Basic health check for root URL
+app.get('/', (req, res) => {
+  res.send('🚀 Multilingual Mandi Server is Running! Access API at /api')
+})
 
 // REST API endpoints
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
+  res.json({
+    status: 'healthy',
     timestamp: new Date(),
     activeConnections: activeConnections.size
   })
@@ -278,7 +325,7 @@ app.get('/api/prices/:crop', async (req, res) => {
   try {
     const { crop } = req.params
     const { location } = req.query
-    
+
     // Basic validation
     if (!crop || typeof crop !== 'string' || crop.trim().length === 0) {
       return res.status(400).json({ error: 'Invalid crop parameter' })
@@ -298,18 +345,18 @@ app.post('/api/translate', async (req, res) => {
     const validation = validateTranslationRequest(req.body)
     if (!validation.valid) {
       logger.warn('Invalid translation request:', validation.errors)
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Invalid request',
-        details: validation.errors 
+        details: validation.errors
       })
     }
 
     const { text, fromLang, toLang } = validation.sanitized
-    
+
     // Use server-side translation service which should have access to API keys
     const translation = await translationService.translate(text, fromLang, toLang)
-    
-    res.json({ 
+
+    res.json({
       originalText: text,
       translatedText: translation,
       fromLang,
