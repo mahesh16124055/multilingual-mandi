@@ -441,7 +441,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support & Contact
 
-- 📧 **Email**: mahesh.mettireddy@gmail.com
+- 📧 **Email**: maheshmettireddy55@gmail.com
 - 💼 **LinkedIn**: [Mahesh Mettireddy](https://www.linkedin.com/in/mahesh-mettireddy/)
 - 🐛 **Issues**: [GitHub Issues](https://github.com/mahesh16124055/multilingual-mandi/issues)
 - 📖 **Documentation**: [Project Documentation](https://github.com/mahesh16124055/multilingual-mandi#readme)

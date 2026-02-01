@@ -18,10 +18,10 @@
     "deploy": "npm run build && npm run start"
   },
   "keywords": [
-    "mandi", 
-    "multilingual", 
-    "ai", 
-    "viksit-bharat", 
+    "mandi",
+    "multilingual",
+    "ai",
+    "viksit-bharat",
     "agriculture",
     "translation",
     "marketplace",
@@ -33,7 +33,7 @@
   ],
   "author": {
     "name": "Mahesh Mettireddy",
-    "email": "mahesh.mettireddy@gmail.com",
+    "email": "maheshmettireddy55@gmail.com",
     "url": "https://www.linkedin.com/in/mahesh-mettireddy/"
   },
   "license": "MIT",
