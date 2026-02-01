@@ -13,7 +13,6 @@
     "test:services": "jest --testPathPattern=services"
   },
   "dependencies": {
-    "@huggingface/inference": "^4.13.10",
     "@supabase/supabase-js": "^2.39.0",
     "axios": "^1.7.9",
     "cors": "^2.8.5",

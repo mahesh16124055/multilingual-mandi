@@ -4,10 +4,10 @@ import Head from 'next/head'
 import { motion, AnimatePresence, useSpring, useMotionValue } from 'framer-motion'
 import io from 'socket.io-client'
 import Confetti from 'react-confetti'
-import { 
-  Mic, 
-  MicOff, 
-  Send, 
+import {
+  Mic,
+  MicOff,
+  Send,
   CheckCircle,
   User,
   Bot,
@@ -43,7 +43,7 @@ import {
   TrendingUp
 } from 'lucide-react'
 import IndianFlag from '../components/IndianFlag'
-import { 
+import {
   ModernGlobe,
   ModernTrendingUp,
   ModernChat,
@@ -66,6 +66,8 @@ import ImpactSection from '../components/ImpactSection'
 import { getDashboardTranslation } from '../utils/dashboardTabTranslations'
 import { getTabTranslation } from '../utils/tabContentTranslations'
 import { PageLoader } from '../components/LoadingSpinner'
+import logger from '../utils/logger'
+import { SOCKET_CONFIG, MESSAGE_LIMITS, CONNECTION_QUALITY } from '../utils/constants'
 
 // Custom hooks for advanced state management
 const useSocketConnection = (type, selectedLanguage, session, isExplorationMode) => {
@@ -83,17 +85,17 @@ const useSocketConnection = (type, selectedLanguage, session, isExplorationMode)
       if (isExplorationMode) {
         setIsConnected(true)
         setConnectionQuality('excellent')
-        return () => {}
+        return () => { }
       }
 
       const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
         transports: ['websocket', 'polling'],
-        timeout: 20000,
+        timeout: SOCKET_CONFIG.TIMEOUT,
         forceNew: true,
         reconnection: true,
-        reconnectionAttempts: maxReconnectAttempts,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000
+        reconnectionAttempts: SOCKET_CONFIG.RECONNECT_ATTEMPTS,
+        reconnectionDelay: SOCKET_CONFIG.RECONNECT_DELAY,
+        reconnectionDelayMax: SOCKET_CONFIG.RECONNECT_DELAY_MAX
       })
 
       // Connection quality monitoring
@@ -101,19 +103,24 @@ const useSocketConnection = (type, selectedLanguage, session, isExplorationMode)
         if (newSocket.connected) {
           const start = Date.now()
           newSocket.emit('ping', start, (latency) => {
-            if (latency < 100) setConnectionQuality('excellent')
-            else if (latency < 300) setConnectionQuality('good')
-            else if (latency < 500) setConnectionQuality('fair')
-            else setConnectionQuality('poor')
+            if (latency < CONNECTION_QUALITY.EXCELLENT.threshold) {
+              setConnectionQuality(CONNECTION_QUALITY.EXCELLENT.label)
+            } else if (latency < CONNECTION_QUALITY.GOOD.threshold) {
+              setConnectionQuality(CONNECTION_QUALITY.GOOD.label)
+            } else if (latency < CONNECTION_QUALITY.FAIR.threshold) {
+              setConnectionQuality(CONNECTION_QUALITY.FAIR.label)
+            } else {
+              setConnectionQuality(CONNECTION_QUALITY.POOR.label)
+            }
           })
         }
-      }, 5000)
+      }, SOCKET_CONFIG.PING_INTERVAL)
 
       newSocket.on('connect', () => {
         setIsConnected(true)
         reconnectAttempts.current = 0
-        console.log('🟢 Connected to server')
-        
+        logger.log('Connected to server')
+
         newSocket.emit('join', {
           type,
           language: selectedLanguage,
@@ -124,17 +131,17 @@ const useSocketConnection = (type, selectedLanguage, session, isExplorationMode)
 
       newSocket.on('disconnect', (reason) => {
         setIsConnected(false)
-        console.log('🔴 Disconnected:', reason)
+        logger.warn('Disconnected from server:', reason)
       })
 
       newSocket.on('connect_error', (error) => {
-        console.error('🔴 Connection error:', error)
+        logger.error('Connection error:', error)
         setIsConnected(false)
         reconnectAttempts.current++
       })
 
       newSocket.on('reconnect', (attemptNumber) => {
-        console.log('🟡 Reconnected after', attemptNumber, 'attempts')
+        logger.log('Reconnected after', attemptNumber, 'attempts')
         setIsConnected(true)
       })
 
@@ -156,13 +163,36 @@ const useSocketConnection = (type, selectedLanguage, session, isExplorationMode)
 }
 
 const useRealTimeMessages = (socket, selectedLanguage, isExplorationMode) => {
-  const [messages, setMessages] = useState([])
+  // Initialize with demo messages for better UX
+  const [messages, setMessages] = useState(() => {
+    return [
+      {
+        id: 1,
+        message: "नमस्ते! मैं टमाटर बेच रहा हूं। क्या आप खरीदना चाहते हैं?",
+        translatedMessage: "Hello! I'm selling tomatoes. Would you like to buy?",
+        sender: "vendor",
+        timestamp: new Date(Date.now() - 300000),
+        language: "hi"
+      },
+      {
+        id: 2,
+        message: "Hi! Yes, I'm interested. What's the price per kg?",
+        translatedMessage: "हाय! हां, मुझे दिलचस्पी है। प्रति किलो क्या दाम है?",
+        sender: "buyer",
+        timestamp: new Date(Date.now() - 240000),
+        language: "en"
+      }
+    ]
+  })
   const [typingUsers, setTypingUsers] = useState(new Set())
   const translationService = useMemo(() => new TranslationService(), [])
 
+  // Initialize sample messages only once in exploration mode
+  const hasInitialized = useRef(false)
+
   useEffect(() => {
-    // In exploration mode, add some sample messages
-    if (isExplorationMode && messages.length === 0) {
+    // In exploration mode, add some sample messages only once
+    if (isExplorationMode && !hasInitialized.current) {
       const sampleMessages = [
         {
           id: 'sample_1',
@@ -182,27 +212,45 @@ const useRealTimeMessages = (socket, selectedLanguage, isExplorationMode) => {
         }
       ]
       setMessages(sampleMessages)
-      return
+      hasInitialized.current = true
     }
+  }, [isExplorationMode])
 
+  useEffect(() => {
     if (!socket) return
 
     const handleMessage = async (data) => {
       try {
-        const translatedMessage = await translationService.translate(
-          data.message, 
-          data.language, 
-          selectedLanguage
-        )
-        
+        // Add message immediately for better UX, translate in background
+        const tempId = data.id || Date.now() + Math.random()
         setMessages(prev => [...prev, {
           ...data,
-          translatedMessage,
+          translatedMessage: null, // Will be updated after translation
           timestamp: new Date(),
-          id: data.id || Date.now() + Math.random()
+          id: tempId
         }])
+
+        // Translate in background without blocking
+        translationService.translate(
+          data.message,
+          data.language,
+          selectedLanguage
+        ).then(translatedMessage => {
+          setMessages(prev => prev.map(msg =>
+            msg.id === tempId
+              ? { ...msg, translatedMessage }
+              : msg
+          ))
+        }).catch(error => {
+          logger.error('Message processing error:', error)
+          setMessages(prev => prev.map(msg =>
+            msg.id === tempId
+              ? { ...msg, translatedMessage: data.message }
+              : msg
+          ))
+        })
       } catch (error) {
-        console.error('Message processing error:', error)
+        logger.error('Message processing error:', error)
         setMessages(prev => [...prev, {
           ...data,
           translatedMessage: data.message,
@@ -220,7 +268,7 @@ const useRealTimeMessages = (socket, selectedLanguage, isExplorationMode) => {
           newSet.delete(data.userId)
           return newSet
         })
-      }, 3000)
+      }, MESSAGE_LIMITS.TYPING_TIMEOUT)
     }
 
     socket.on('message', handleMessage)
@@ -230,7 +278,7 @@ const useRealTimeMessages = (socket, selectedLanguage, isExplorationMode) => {
       socket.off('message', handleMessage)
       socket.off('typing', handleTyping)
     }
-  }, [socket, selectedLanguage, translationService, isExplorationMode, messages.length])
+  }, [socket, selectedLanguage, translationService, isExplorationMode])
 
   return { messages, setMessages, typingUsers }
 }
@@ -239,13 +287,13 @@ export default function Dashboard() {
   const router = useRouter()
   const { type, lang, demo } = router.query
   const { supabase, session, loading } = useSupabase()
-  
+
   // Allow exploration mode - all pages accessible without auth
   // Enable by default for production deployments to allow seamless exploration
-  const isExplorationMode = demo === 'true' || 
-                           process.env.NEXT_PUBLIC_DEMO_MODE === 'true' ||
-                           process.env.NODE_ENV === 'production'
-  
+  const isExplorationMode = demo === 'true' ||
+    process.env.NEXT_PUBLIC_DEMO_MODE === 'true' ||
+    process.env.NODE_ENV === 'production'
+
   // Advanced state management
   const [selectedLanguage, setSelectedLanguage] = useState(lang || 'en')
   const [currentMessage, setCurrentMessage] = useState('')
@@ -313,7 +361,7 @@ export default function Dashboard() {
       // Skip database operations in exploration mode
       return
     }
-    
+
     try {
       const { data, error } = await supabase
         .from('user_profiles')
@@ -379,7 +427,7 @@ export default function Dashboard() {
   // Custom hooks
   const { socket, isConnected, connectionQuality } = useSocketConnection(type, selectedLanguage, session, isExplorationMode)
   const { messages, setMessages, typingUsers } = useRealTimeMessages(socket, selectedLanguage, isExplorationMode)
-  
+
   const messagesEndRef = useRef(null)
   const typingTimeoutRef = useRef(null)
 
@@ -423,57 +471,131 @@ export default function Dashboard() {
     }
   }, [socket, isConnected, session, type])
 
-  const sendMessage = useCallback(async () => {
-    if (!currentMessage.trim()) return
+  const sendMessage = useCallback(async (messageOverride = null, targetLangOverride = null) => {
+    // Use messageOverride if provided, otherwise use currentMessage state
+    const messageToSend = messageOverride || currentMessage
 
-    const messageData = {
-      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      message: currentMessage.trim(),
-      sender: type,
-      language: selectedLanguage,
-      timestamp: new Date(),
-      translatedMessage: currentMessage.trim(), // In demo mode, no translation needed
-      metadata: {
-        platform: 'web',
-        version: '1.0.0',
-        userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : ''
-      }
+    if (!messageToSend || !messageToSend.trim()) {
+      return
+    }
+
+    const messageText = messageToSend.trim()
+    const effectiveTargetLang = targetLangOverride || (selectedLanguage === 'en' ? 'hi' : 'en')
+
+    // Validate message length
+    if (messageText.length > MESSAGE_LIMITS.MAX_LENGTH) {
+      logger.warn('Message exceeds maximum length')
+      return
     }
 
     try {
-      // Optimistic update
-      setMessages(prev => [...prev, messageData])
-      setCurrentMessage('')
-      
-      // In exploration mode, simulate server response
+      // Create message data
+      const messageData = {
+        id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        message: messageText,
+        sender: type,
+        language: selectedLanguage,
+        targetLanguage: effectiveTargetLang,
+        timestamp: new Date(),
+        translatedMessage: null
+      }
+
+      // Add message immediately
+      setMessages(prev => {
+        const newMessages = [...prev, messageData]
+        logger.debug('Messages updated', { count: newMessages.length })
+        return newMessages
+      })
+
+      // Only clear currentMessage if we used it (not if messageOverride was provided)
+      if (!messageOverride) {
+        setCurrentMessage('')
+      }
+
+      // Translate message in background
+      setTimeout(async () => {
+        try {
+          const translationService = new TranslationService()
+          const translatedMessage = await translationService.translate(
+            messageText,
+            selectedLanguage,
+            effectiveTargetLang
+          )
+
+          // Update message with translation
+          setMessages(prev => prev.map(msg =>
+            msg.id === messageData.id
+              ? { ...msg, translatedMessage: translatedMessage !== messageText ? translatedMessage : null }
+              : msg
+          ))
+        } catch (error) {
+          logger.error('Translation error:', error)
+        }
+      }, 100)
+
+      // Generate AI response based on user type
       if (isExplorationMode) {
-        setTimeout(() => {
-          const responses = [
-            'That sounds good! Let me check my inventory.',
-            'I can offer you a better price for bulk orders.',
-            'When do you need the delivery?',
-            'The quality is excellent, freshly harvested.',
-            'I can negotiate on the price. What\'s your budget?'
+        setTimeout(async () => {
+          const vendorResponses = [
+            'I have fresh vegetables available today!',
+            'Quality is excellent, just harvested this morning.',
+            'I can offer competitive prices for bulk orders.',
+            'Free delivery for orders above ₹500.',
+            'Let me check my current stock for you.',
+            'What quantity are you looking for?'
           ]
+
+          const buyerResponses = [
+            'I\'m interested in your products. What\'s available?',
+            'Can you tell me about the quality?',
+            'What are your best prices?',
+            'Do you offer bulk discounts?',
+            'When can you deliver?',
+            'Can I see some samples first?'
+          ]
+
+          const responseType = type === 'buyer' ? 'vendor' : 'buyer'
+          const responses = type === 'buyer' ? vendorResponses : buyerResponses
           const randomResponse = responses[Math.floor(Math.random() * responses.length)]
-          
-          setMessages(prev => [...prev, {
+
+          const aiMessage = {
             id: `response_${Date.now()}`,
             message: randomResponse,
-            sender: type === 'vendor' ? 'buyer' : 'vendor',
-            language: selectedLanguage,
-            translatedMessage: randomResponse,
+            sender: responseType,
+            language: 'en',
+            translatedMessage: null,
+            targetLanguage: selectedLanguage,
             timestamp: new Date()
-          }])
-        }, 1000 + Math.random() * 2000) // Random delay 1-3 seconds
-        return
+          }
+
+          setMessages(prev => [...prev, aiMessage])
+
+          // Translate AI response
+          try {
+            const translationService = new TranslationService()
+            const aiTranslation = await translationService.translate(
+              randomResponse,
+              'en',
+              selectedLanguage
+            )
+
+            setMessages(prev => prev.map(msg =>
+              msg.id === aiMessage.id
+                ? { ...msg, translatedMessage: aiTranslation !== randomResponse ? aiTranslation : null }
+                : msg
+            ))
+          } catch (error) {
+            logger.error('AI translation error:', error)
+          }
+
+        }, 1500) // 1.5 second delay for AI response
       }
-      
+
       // Send to server (only in non-exploration mode)
       if (socket && isConnected) {
         socket.emit('message', messageData)
       }
-      
+
       // Analytics tracking
       if (typeof window !== 'undefined' && window.gtag) {
         window.gtag('event', 'message_sent', {
@@ -484,23 +606,25 @@ export default function Dashboard() {
       }
 
       // AI suggestion trigger
-      if (currentMessage.toLowerCase().includes('price') || 
-          currentMessage.toLowerCase().includes('₹') ||
-          currentMessage.toLowerCase().includes('rate')) {
-        
+      if (messageText.toLowerCase().includes('price') ||
+        messageText.toLowerCase().includes('₹') ||
+        messageText.toLowerCase().includes('rate')) {
+
         setTimeout(() => {
-          const suggestion = generateAdvancedNegotiationSuggestion(currentMessage, type)
+          const suggestion = generateAdvancedNegotiationSuggestion(messageText, type)
           if (suggestion) {
             setNegotiationSuggestion(suggestion)
           }
         }, 1000)
       }
     } catch (error) {
-      console.error('Error sending message:', error)
+      logger.error('Error sending message:', error)
       // Rollback optimistic update
       setMessages(prev => prev.filter(msg => msg.id !== messageData.id))
-      setCurrentMessage(currentMessage) // Restore message
-      
+      if (!messageOverride) {
+        setCurrentMessage(messageToSend) // Restore message
+      }
+
       // Show error notification
       setNotifications(prev => [...prev, {
         id: Date.now(),
@@ -520,7 +644,7 @@ export default function Dashboard() {
         trend: ['rising', 'stable', 'falling'][Math.floor(Math.random() * 3)],
         confidence: 0.85 + Math.random() * 0.1
       }
-      
+
       if (userType === 'buyer') {
         return {
           type: 'counter',
@@ -542,16 +666,30 @@ export default function Dashboard() {
     return null
   }, [])
 
-  // Advanced scroll management
+  // Advanced scroll management - debounced to prevent lag
+  const scrollTimeoutRef = useRef(null)
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'end',
-        inline: 'nearest'
-      })
+    // Debounce scroll to prevent animation lag
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current)
     }
-  }, [messages])
+
+    scrollTimeoutRef.current = setTimeout(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'end',
+          inline: 'nearest'
+        })
+      }
+    }, 100) // Small delay to batch scroll updates
+
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+    }
+  }, [messages.length]) // Only depend on length, not full messages array
 
   // Socket event handlers
   useEffect(() => {
@@ -655,7 +793,7 @@ export default function Dashboard() {
 
         {/* Mobile Sidebar Overlay - Only show on mobile when sidebar is open */}
         {!sidebarCollapsed && (
-          <div 
+          <div
             className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
             onClick={() => setSidebarCollapsed(true)}
           />
@@ -667,6 +805,7 @@ export default function Dashboard() {
           <motion.aside
             initial={{ x: -300 }}
             animate={{ x: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className={`${sidebarCollapsed ? 'w-20' : 'w-80'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col shadow-lg
               lg:relative lg:translate-x-0
               ${sidebarCollapsed ? 'lg:w-20' : 'lg:w-80'}
@@ -739,11 +878,10 @@ export default function Dashboard() {
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                      activeTab === item.id
-                        ? 'bg-gradient-to-r from-saffron-subtle to-green-subtle text-gray-900 border border-saffron/30'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                    }`}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === item.id
+                      ? 'bg-gradient-to-r from-saffron-subtle to-green-subtle text-gray-900 border border-saffron/30'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      }`}
                   >
                     <item.icon className="w-5 h-5" />
                     {!sidebarCollapsed && (
@@ -792,7 +930,7 @@ export default function Dashboard() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                   </button>
-                  
+
                   <h1 className="text-lg lg:text-2xl font-bold text-gray-900 truncate">
                     {selectedLanguage === 'hi' ? config.title : config.titleEn}
                   </h1>
@@ -807,14 +945,14 @@ export default function Dashboard() {
                   <div className="hidden md:flex items-center space-x-2 px-3 py-1 bg-gray-50 rounded-lg">
                     <div className="w-6 h-6 bg-gradient-to-r from-saffron to-green rounded-full flex items-center justify-center">
                       <span className="text-xs font-bold text-white">
-                        {isExplorationMode 
+                        {isExplorationMode
                           ? (type === 'vendor' ? 'V' : 'B')
                           : session?.user?.email?.charAt(0).toUpperCase()
                         }
                       </span>
                     </div>
                     <span className="text-sm text-gray-700 truncate max-w-24">
-                      {isExplorationMode 
+                      {isExplorationMode
                         ? (type === 'vendor' ? 'Vendor' : 'Buyer')
                         : (userProfile?.location || 'User')
                       }
@@ -834,11 +972,10 @@ export default function Dashboard() {
                   {/* Voice Toggle */}
                   <button
                     onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-                    className={`hidden sm:flex p-2 rounded-lg transition-colors ${
-                      isVoiceEnabled 
-                        ? 'bg-red-50 text-red-600 hover:bg-red-100' 
-                        : 'hover:bg-gray-100 text-gray-600'
-                    }`}
+                    className={`hidden sm:flex p-2 rounded-lg transition-colors ${isVoiceEnabled
+                      ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                      : 'hover:bg-gray-100 text-gray-600'
+                      }`}
                   >
                     {isVoiceEnabled ? <Mic className="w-4 h-4 lg:w-5 lg:h-5" /> : <MicOff className="w-4 h-4 lg:w-5 lg:h-5" />}
                   </button>
@@ -854,7 +991,7 @@ export default function Dashboard() {
 
                   {/* Language Selector */}
                   <div className="hidden md:block">
-                    <LanguageSelector 
+                    <LanguageSelector
                       selectedLanguage={selectedLanguage}
                       onLanguageChange={setSelectedLanguage}
                     />
@@ -886,8 +1023,8 @@ export default function Dashboard() {
                         messages={messages}
                         currentPrice={currentPrice}
                         userStats={userStats}
-                        onAddProduct={() => console.log('Add product')}
-                        onEditProduct={(id) => console.log('Edit product:', id)}
+                        onAddProduct={() => logger.debug('Add product')}
+                        onEditProduct={(id) => logger.debug('Edit product:', id)}
                         onViewOrders={() => setActiveTab('orders')}
                       />
                     ) : (
@@ -896,8 +1033,8 @@ export default function Dashboard() {
                         messages={messages}
                         currentPrice={currentPrice}
                         userStats={userStats}
-                        onSearchProducts={() => console.log('Search products')}
-                        onViewCart={() => console.log('View cart')}
+                        onSearchProducts={() => logger.debug('Search products')}
+                        onViewCart={() => logger.debug('View cart')}
                         onViewOrders={() => setActiveTab('orders')}
                       />
                     )}
@@ -911,7 +1048,9 @@ export default function Dashboard() {
                       onSendMessage={sendMessage}
                       currentMessage={currentMessage}
                       setCurrentMessage={setCurrentMessage}
+                      setCurrentMessage={setCurrentMessage}
                       language={selectedLanguage}
+                      targetLanguage={selectedLanguage === 'en' ? 'hi' : 'en'}
                       userType={type}
                       isConnected={isConnected}
                       typingUsers={typingUsers}
@@ -941,7 +1080,7 @@ export default function Dashboard() {
                             + {getTabTranslation('labels', 'Add Product', selectedLanguage) || (selectedLanguage === 'hi' ? 'नया उत्पाद जोड़ें' : 'Add New Product')}
                           </button>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                           {[
                             { name: 'Fresh Tomatoes', nameHi: 'ताजे टमाटर', price: '₹40/kg', stock: '150 kg', image: '🍅', status: 'In Stock' },
@@ -967,9 +1106,8 @@ export default function Dashboard() {
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">{getTabTranslation('labels', 'Status:', selectedLanguage)}</span>
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    product.status === 'In Stock' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                                  }`}>
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.status === 'In Stock' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                    }`}>
                                     {getTabTranslation('labels', product.status, selectedLanguage)}
                                   </span>
                                 </div>
@@ -1003,7 +1141,7 @@ export default function Dashboard() {
                             </select>
                           </div>
                         </div>
-                        
+
                         <div className="space-y-4">
                           {[
                             { id: '#ORD-001', customer: 'Rajesh Kumar', items: 'Tomatoes (10kg), Onions (5kg)', total: '₹525', status: 'Pending', date: '2024-01-26' },
@@ -1027,14 +1165,13 @@ export default function Dashboard() {
                                 <p className="text-gray-700">{order.items}</p>
                               </div>
                               <div className="flex items-center justify-between">
-                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                  order.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${order.status === 'Completed' ? 'bg-green-100 text-green-800' :
                                   order.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-blue-100 text-blue-800'
-                                }`}>
+                                    'bg-blue-100 text-blue-800'
+                                  }`}>
                                   {order.status === 'Completed' ? (selectedLanguage === 'hi' ? 'पूर्ण' : 'Completed') :
-                                   order.status === 'Pending' ? (selectedLanguage === 'hi' ? 'लंबित' : 'Pending') :
-                                   (selectedLanguage === 'hi' ? 'प्रसंस्करण' : 'Processing')
+                                    order.status === 'Pending' ? (selectedLanguage === 'hi' ? 'लंबित' : 'Pending') :
+                                      (selectedLanguage === 'hi' ? 'प्रसंस्करण' : 'Processing')
                                   }
                                 </span>
                                 <div className="flex space-x-2">
@@ -1060,7 +1197,7 @@ export default function Dashboard() {
                         <h2 className="text-2xl font-bold text-gray-900">
                           {getDashboardTranslation(selectedLanguage, 'analytics')}
                         </h2>
-                        
+
                         {/* Key Metrics */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                           {[
@@ -1073,12 +1210,11 @@ export default function Dashboard() {
                               <div className="text-3xl mb-2">{metric.icon}</div>
                               <h3 className="text-sm text-gray-600 mb-1">{metric.title}</h3>
                               <div className="text-2xl font-bold text-gray-900 mb-1">{metric.value}</div>
-                              <div className={`text-sm font-medium ${
-                                metric.color === 'green' ? 'text-green-600' :
+                              <div className={`text-sm font-medium ${metric.color === 'green' ? 'text-green-600' :
                                 metric.color === 'blue' ? 'text-blue-600' :
-                                metric.color === 'purple' ? 'text-purple-600' :
-                                'text-orange-600'
-                              }`}>
+                                  metric.color === 'purple' ? 'text-purple-600' :
+                                    'text-orange-600'
+                                }`}>
                                 {metric.change} {selectedLanguage === 'hi' ? 'इस महीने' : 'this month'}
                               </div>
                             </div>
@@ -1100,7 +1236,7 @@ export default function Dashboard() {
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="card-premium">
                             <h3 className="text-lg font-semibold mb-4">
                               {selectedLanguage === 'hi' ? 'शीर्ष उत्पाद' : 'Top Products'}
@@ -1118,8 +1254,8 @@ export default function Dashboard() {
                                     <div className="text-sm text-gray-600">{product.sales}</div>
                                   </div>
                                   <div className="w-24 bg-gray-200 rounded-full h-2">
-                                    <div 
-                                      className="bg-saffron h-2 rounded-full" 
+                                    <div
+                                      className="bg-saffron h-2 rounded-full"
                                       style={{ width: `${product.percentage}%` }}
                                     ></div>
                                   </div>
@@ -1137,7 +1273,7 @@ export default function Dashboard() {
                         <h2 className="text-2xl font-bold text-gray-900">
                           {getDashboardTranslation(selectedLanguage, 'settings')}
                         </h2>
-                        
+
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                           {/* Profile Settings */}
                           <div className="card-premium">
@@ -1269,8 +1405,8 @@ export default function Dashboard() {
                             {getDashboardTranslation(selectedLanguage, 'browse')}
                           </h2>
                           <div className="flex space-x-2">
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               placeholder={selectedLanguage === 'hi' ? 'उत्पाद खोजें...' : 'Search products...'}
                               className="px-3 py-2 border border-gray-300 rounded-lg"
                             />
@@ -1281,7 +1417,7 @@ export default function Dashboard() {
                             </select>
                           </div>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                           {[
                             { name: 'Fresh Tomatoes', nameHi: 'ताजे टमाटर', price: '₹40/kg', vendor: 'Kumar Vegetables', rating: 4.5, image: '🍅' },
@@ -1333,7 +1469,7 @@ export default function Dashboard() {
                         <h2 className="text-2xl font-bold text-gray-900">
                           {getDashboardTranslation(selectedLanguage, 'wishlist')}
                         </h2>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                           {[
                             { name: 'Organic Tomatoes', nameHi: 'जैविक टमाटर', price: '₹60/kg', vendor: 'Organic Farm', image: '🍅' },
@@ -1378,7 +1514,7 @@ export default function Dashboard() {
                             {selectedLanguage === 'hi' ? 'जल्द आ रहा है' : 'Coming Soon'}
                           </h3>
                           <p className="text-gray-600">
-                            {selectedLanguage === 'hi' 
+                            {selectedLanguage === 'hi'
                               ? 'यह सुविधा जल्द ही उपलब्ध होगी'
                               : 'This feature will be available soon'
                             }
@@ -1423,7 +1559,7 @@ export default function Dashboard() {
                           animate={{ opacity: 1, y: 0 }}
                           className="card-premium"
                         >
-                          <PriceCalculator 
+                          <PriceCalculator
                             userType={type}
                             language={selectedLanguage}
                             onPriceUpdate={setCurrentPrice}
@@ -1438,7 +1574,7 @@ export default function Dashboard() {
                           animate={{ opacity: 1, y: 0 }}
                           className="card-premium"
                         >
-                          <VoiceInterface 
+                          <VoiceInterface
                             language={selectedLanguage}
                             onVoiceMessage={(message) => {
                               setCurrentMessage(message)
@@ -1458,7 +1594,7 @@ export default function Dashboard() {
                             <TrendingUp className="w-5 h-5 text-green" />
                             <h4 className="font-semibold text-gray-900">Current Deal</h4>
                           </div>
-                          
+
                           <div className="space-y-3">
                             <div className="flex justify-between items-center">
                               <span className="text-gray-600">Item:</span>
@@ -1478,7 +1614,7 @@ export default function Dashboard() {
                                 ₹{(currentPrice.price * currentPrice.quantity).toLocaleString()}
                               </span>
                             </div>
-                            
+
                             <button
                               onClick={() => {
                                 if (socket) {
@@ -1511,7 +1647,7 @@ export default function Dashboard() {
                           <button
                             onClick={() => {
                               // Generate invoice logic
-                              console.log('Generating invoice...')
+                              logger.debug('Generating invoice...')
                             }}
                             className="btn-outline mx-auto flex items-center space-x-2"
                           >
@@ -1539,10 +1675,9 @@ export default function Dashboard() {
               className="fixed top-4 right-4 z-50 bg-white border border-gray-200 rounded-xl p-4 max-w-sm shadow-xl"
             >
               <div className="flex items-center space-x-3">
-                <div className={`w-2 h-2 rounded-full ${
-                  notification.type === 'error' ? 'bg-red-500' : 
+                <div className={`w-2 h-2 rounded-full ${notification.type === 'error' ? 'bg-red-500' :
                   notification.type === 'success' ? 'bg-green-500' : 'bg-blue-500'
-                }`}></div>
+                  }`}></div>
                 <p className="text-gray-900 text-sm">{notification.message}</p>
                 <button
                   onClick={() => setNotifications(prev => prev.filter(n => n.id !== notification.id))}

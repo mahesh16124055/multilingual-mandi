@@ -6,6 +6,8 @@ const rateLimit = require('express-rate-limit')
 require('dotenv').config()
 
 const { validateEnvironment } = require('./utils/validateEnv')
+const logger = require('./utils/logger')
+const { validateMessage, validateUserJoin, validateTranslationRequest, sanitizeString } = require('./utils/validation')
 
 // Validate environment variables
 validateEnvironment()
@@ -56,7 +58,7 @@ const activeRooms = new Map()
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id)
+  logger.log('User connected:', socket.id)
   
   // Store connection info
   activeConnections.set(socket.id, {
@@ -69,8 +71,10 @@ io.on('connection', (socket) => {
   // Handle user joining
   socket.on('join', (userData) => {
     try {
-      if (!userData || !userData.type || !userData.language) {
-        socket.emit('error', { message: 'Invalid user data' })
+      const validation = validateUserJoin(userData)
+      if (!validation.valid) {
+        logger.warn('Invalid user join data:', validation.errors)
+        socket.emit('error', { message: validation.errors.join(', ') })
         return
       }
 
@@ -85,9 +89,9 @@ io.on('connection', (socket) => {
       const roomName = `${userData.type}_${userData.language}`
       socket.join(roomName)
       
-      console.log(`User ${socket.id} joined as ${userData.type} speaking ${userData.language}`)
+      logger.log(`User ${socket.id} joined as ${userData.type} speaking ${userData.language}`)
     } catch (error) {
-      console.error('Error handling user join:', error)
+      logger.error('Error handling user join:', error)
       socket.emit('error', { message: 'Failed to join room' })
     }
   })
@@ -96,29 +100,36 @@ io.on('connection', (socket) => {
   socket.on('message', async (messageData) => {
     try {
       // Validate message data
-      if (!messageData || !messageData.message || !messageData.sender || !messageData.language) {
-        socket.emit('error', { message: 'Invalid message data' })
+      const validation = validateMessage(messageData)
+      if (!validation.valid) {
+        logger.warn('Invalid message data:', validation.errors)
+        socket.emit('error', { message: validation.errors.join(', ') })
         return
       }
 
-      // Sanitize message content
-      const sanitizedMessage = messageData.message.trim().substring(0, 1000) // Limit message length
+      const sanitizedMessage = validation.sanitized.message
       
       // Store message in database
-      const { data, error } = await supabase
-        .from('messages')
-        .insert([
-          {
-            sender_id: socket.id,
-            message: sanitizedMessage,
-            language: messageData.language,
-            sender_type: messageData.sender,
-            created_at: new Date()
-          }
-        ])
+      try {
+        const { data, error } = await supabase
+          .from('messages')
+          .insert([
+            {
+              sender_id: socket.id,
+              message: sanitizedMessage,
+              language: messageData.language,
+              sender_type: messageData.sender,
+              created_at: new Date()
+            }
+          ])
 
-      if (error) {
-        console.error('Database error:', error)
+        if (error) {
+          logger.error('Database error storing message:', error)
+          // Don't fail the request, just log the error
+        }
+      } catch (dbError) {
+        logger.error('Database operation failed:', dbError)
+        // Continue to broadcast even if DB fails
       }
 
       // Broadcast message to all connected clients
@@ -130,24 +141,29 @@ io.on('connection', (socket) => {
 
       // Check if message contains price-related keywords
       if (containsPriceKeywords(sanitizedMessage)) {
-        // Generate price suggestion
-        const priceData = await priceService.generatePriceSuggestion(sanitizedMessage)
-        if (priceData) {
-          socket.emit('priceUpdate', priceData)
-        }
+        try {
+          // Generate price suggestion
+          const priceData = await priceService.generatePriceSuggestion(sanitizedMessage)
+          if (priceData) {
+            socket.emit('priceUpdate', priceData)
+          }
 
-        // Generate negotiation suggestion
-        const suggestion = await negotiationService.generateSuggestion(
-          sanitizedMessage,
-          messageData.sender
-        )
-        if (suggestion) {
-          socket.emit('negotiationSuggestion', suggestion)
+          // Generate negotiation suggestion
+          const suggestion = await negotiationService.generateSuggestion(
+            sanitizedMessage,
+            messageData.sender
+          )
+          if (suggestion) {
+            socket.emit('negotiationSuggestion', suggestion)
+          }
+        } catch (suggestionError) {
+          logger.error('Error generating suggestions:', suggestionError)
+          // Don't fail the message send if suggestions fail
         }
       }
 
     } catch (error) {
-      console.error('Message handling error:', error)
+      logger.error('Message handling error:', error)
       socket.emit('error', { message: 'Failed to process message' })
     }
   })
@@ -158,7 +174,7 @@ io.on('connection', (socket) => {
       const calculatedPrice = await priceService.calculatePrice(priceData)
       socket.emit('priceCalculated', calculatedPrice)
     } catch (error) {
-      console.error('Price calculation error:', error)
+      logger.error('Price calculation error:', error)
       socket.emit('error', { message: 'Failed to calculate price' })
     }
   })
@@ -179,7 +195,9 @@ io.on('connection', (socket) => {
         ])
 
       if (error) {
-        console.error('Deal storage error:', error)
+        logger.error('Deal storage error:', error)
+        socket.emit('error', { message: 'Failed to store deal' })
+        return
       }
 
       // Notify all participants
@@ -194,7 +212,7 @@ io.on('connection', (socket) => {
       })
 
     } catch (error) {
-      console.error('Deal acceptance error:', error)
+      logger.error('Deal acceptance error:', error)
       socket.emit('error', { message: 'Failed to accept deal' })
     }
   })
@@ -215,14 +233,14 @@ io.on('connection', (socket) => {
         toLang: translationData.toLang
       })
     } catch (error) {
-      console.error('Translation error:', error)
+      logger.error('Translation error:', error)
       socket.emit('error', { message: 'Translation failed' })
     }
   })
 
   // Handle disconnection
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id)
+    logger.log('User disconnected:', socket.id)
     activeConnections.delete(socket.id)
   })
 })
@@ -261,19 +279,36 @@ app.get('/api/prices/:crop', async (req, res) => {
     const { crop } = req.params
     const { location } = req.query
     
-    const priceData = await priceService.getCurrentPrice(crop, location)
+    // Basic validation
+    if (!crop || typeof crop !== 'string' || crop.trim().length === 0) {
+      return res.status(400).json({ error: 'Invalid crop parameter' })
+    }
+
+    const sanitizedCrop = sanitizeString(crop)
+    const priceData = await priceService.getCurrentPrice(sanitizedCrop, location)
     res.json(priceData)
   } catch (error) {
-    console.error('Price API error:', error)
+    logger.error('Price API error:', error)
     res.status(500).json({ error: 'Failed to fetch price data' })
   }
 })
 
 app.post('/api/translate', async (req, res) => {
   try {
-    const { text, fromLang, toLang } = req.body
+    const validation = validateTranslationRequest(req.body)
+    if (!validation.valid) {
+      logger.warn('Invalid translation request:', validation.errors)
+      return res.status(400).json({ 
+        error: 'Invalid request',
+        details: validation.errors 
+      })
+    }
+
+    const { text, fromLang, toLang } = validation.sanitized
     
+    // Use server-side translation service which should have access to API keys
     const translation = await translationService.translate(text, fromLang, toLang)
+    
     res.json({ 
       originalText: text,
       translatedText: translation,
@@ -281,21 +316,21 @@ app.post('/api/translate', async (req, res) => {
       toLang
     })
   } catch (error) {
-    console.error('Translation API error:', error)
+    logger.error('Translation API error:', error)
     res.status(500).json({ error: 'Translation failed' })
   }
 })
 
 // Error handling middleware
 app.use((error, req, res, next) => {
-  console.error('Server error:', error)
+  logger.error('Server error:', error)
   res.status(500).json({ error: 'Internal server error' })
 })
 
 const PORT = process.env.PORT || 3001
 
 server.listen(PORT, () => {
-  console.log(`🚀 Multilingual Mandi Server running on port ${PORT}`)
-  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
-  console.log(`🌐 CORS enabled for: ${process.env.CLIENT_URL || 'http://localhost:3000'}`)
+  logger.log(`🚀 Multilingual Mandi Server running on port ${PORT}`)
+  logger.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
+  logger.log(`🌐 CORS enabled for: ${process.env.CLIENT_URL || 'http://localhost:3000'}`)
 })

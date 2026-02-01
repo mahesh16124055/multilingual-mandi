@@ -2,36 +2,54 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Calculator, TrendingUp, MapPin, Calendar, Star } from 'lucide-react'
 
-const crops = [
-  { name: 'Rice', hindi: 'चावल', basePrice: 25 },
-  { name: 'Wheat', hindi: 'गेहूं', basePrice: 22 },
-  { name: 'Tomato', hindi: 'टमाटर', basePrice: 30 },
-  { name: 'Onion', hindi: 'प्याज', basePrice: 18 },
-  { name: 'Potato', hindi: 'आलू', basePrice: 15 },
-  { name: 'Sugarcane', hindi: 'गन्ना', basePrice: 35 },
-  { name: 'Cotton', hindi: 'कपास', basePrice: 45 },
-  { name: 'Soybean', hindi: 'सोयाबीन', basePrice: 40 },
+// Default crops - can be extended via API
+const getDefaultCrops = () => [
+  { name: 'Rice', hindi: 'चावल', basePrice: parseInt(process.env.NEXT_PUBLIC_BASE_PRICE_RICE) || 25 },
+  { name: 'Wheat', hindi: 'गेहूं', basePrice: parseInt(process.env.NEXT_PUBLIC_BASE_PRICE_WHEAT) || 22 },
+  { name: 'Tomato', hindi: 'टमाटर', basePrice: parseInt(process.env.NEXT_PUBLIC_BASE_PRICE_TOMATO) || 30 },
+  { name: 'Onion', hindi: 'प्याज', basePrice: parseInt(process.env.NEXT_PUBLIC_BASE_PRICE_ONION) || 18 },
+  { name: 'Potato', hindi: 'आलू', basePrice: parseInt(process.env.NEXT_PUBLIC_BASE_PRICE_POTATO) || 15 },
+  { name: 'Sugarcane', hindi: 'गन्ना', basePrice: parseInt(process.env.NEXT_PUBLIC_BASE_PRICE_SUGARCANE) || 35 },
+  { name: 'Cotton', hindi: 'कपास', basePrice: parseInt(process.env.NEXT_PUBLIC_BASE_PRICE_COTTON) || 45 },
+  { name: 'Soybean', hindi: 'सोयाबीन', basePrice: parseInt(process.env.NEXT_PUBLIC_BASE_PRICE_SOYBEAN) || 40 },
+  { name: 'Maize', hindi: 'मक्का', basePrice: parseInt(process.env.NEXT_PUBLIC_BASE_PRICE_MAIZE) || 20 },
+  { name: 'Bajra', hindi: 'बाजरा', basePrice: parseInt(process.env.NEXT_PUBLIC_BASE_PRICE_BAJRA) || 18 },
+  { name: 'Jowar', hindi: 'ज्वार', basePrice: parseInt(process.env.NEXT_PUBLIC_BASE_PRICE_JOWAR) || 19 },
+  { name: 'Groundnut', hindi: 'मूंगफली', basePrice: parseInt(process.env.NEXT_PUBLIC_BASE_PRICE_GROUNDNUT) || 55 },
 ]
 
-const locations = [
-  { name: 'Delhi', multiplier: 1.2 },
-  { name: 'Mumbai', multiplier: 1.3 },
-  { name: 'Bangalore', multiplier: 1.1 },
-  { name: 'Hyderabad', multiplier: 1.0 },
-  { name: 'Chennai', multiplier: 1.1 },
-  { name: 'Kolkata', multiplier: 0.9 },
-  { name: 'Pune', multiplier: 1.15 },
-  { name: 'Ahmedabad', multiplier: 1.05 },
+// Default locations - can be extended via API
+const getDefaultLocations = () => [
+  { name: 'Delhi', multiplier: parseFloat(process.env.NEXT_PUBLIC_LOCATION_MULTIPLIER_DELHI) || 1.2 },
+  { name: 'Mumbai', multiplier: parseFloat(process.env.NEXT_PUBLIC_LOCATION_MULTIPLIER_MUMBAI) || 1.3 },
+  { name: 'Bangalore', multiplier: parseFloat(process.env.NEXT_PUBLIC_LOCATION_MULTIPLIER_BANGALORE) || 1.1 },
+  { name: 'Hyderabad', multiplier: parseFloat(process.env.NEXT_PUBLIC_LOCATION_MULTIPLIER_HYDERABAD) || 1.0 },
+  { name: 'Chennai', multiplier: parseFloat(process.env.NEXT_PUBLIC_LOCATION_MULTIPLIER_CHENNAI) || 1.1 },
+  { name: 'Kolkata', multiplier: parseFloat(process.env.NEXT_PUBLIC_LOCATION_MULTIPLIER_KOLKATA) || 0.9 },
+  { name: 'Pune', multiplier: parseFloat(process.env.NEXT_PUBLIC_LOCATION_MULTIPLIER_PUNE) || 1.15 },
+  { name: 'Ahmedabad', multiplier: parseFloat(process.env.NEXT_PUBLIC_LOCATION_MULTIPLIER_AHMEDABAD) || 1.05 },
+  { name: 'Jaipur', multiplier: parseFloat(process.env.NEXT_PUBLIC_LOCATION_MULTIPLIER_JAIPUR) || 1.0 },
+  { name: 'Lucknow', multiplier: parseFloat(process.env.NEXT_PUBLIC_LOCATION_MULTIPLIER_LUCKNOW) || 0.95 },
+  { name: 'Bhopal', multiplier: parseFloat(process.env.NEXT_PUBLIC_LOCATION_MULTIPLIER_BHOPAL) || 0.9 },
+  { name: 'Patna', multiplier: parseFloat(process.env.NEXT_PUBLIC_LOCATION_MULTIPLIER_PATNA) || 0.85 },
 ]
 
-const qualityGrades = [
-  { name: 'Premium', multiplier: 1.3, description: 'Top quality, export grade' },
-  { name: 'Grade A', multiplier: 1.1, description: 'High quality, minimal defects' },
-  { name: 'Grade B', multiplier: 1.0, description: 'Standard quality' },
-  { name: 'Grade C', multiplier: 0.85, description: 'Lower grade, some defects' },
+// Default quality grades - can be extended via API
+const getDefaultQualityGrades = () => [
+  { name: 'Premium', multiplier: parseFloat(process.env.NEXT_PUBLIC_QUALITY_MULTIPLIER_PREMIUM) || 1.3, description: 'Top quality, export grade' },
+  { name: 'Grade A', multiplier: parseFloat(process.env.NEXT_PUBLIC_QUALITY_MULTIPLIER_GRADE_A) || 1.1, description: 'High quality, minimal defects' },
+  { name: 'Grade B', multiplier: parseFloat(process.env.NEXT_PUBLIC_QUALITY_MULTIPLIER_GRADE_B) || 1.0, description: 'Standard quality' },
+  { name: 'Grade C', multiplier: parseFloat(process.env.NEXT_PUBLIC_QUALITY_MULTIPLIER_GRADE_C) || 0.85, description: 'Lower grade, some defects' },
+  { name: 'Export', multiplier: parseFloat(process.env.NEXT_PUBLIC_QUALITY_MULTIPLIER_EXPORT) || 1.4, description: 'Export quality, premium grade' },
+  { name: 'Organic', multiplier: parseFloat(process.env.NEXT_PUBLIC_QUALITY_MULTIPLIER_ORGANIC) || 1.25, description: 'Certified organic produce' },
 ]
 
 export default function PriceCalculator({ userType, language, onPriceUpdate }) {
+  // Initialize with default data - can be replaced with API data
+  const [crops] = useState(getDefaultCrops())
+  const [locations] = useState(getDefaultLocations())
+  const [qualityGrades] = useState(getDefaultQualityGrades())
+  
   const [selectedCrop, setSelectedCrop] = useState(crops[0])
   const [selectedLocation, setSelectedLocation] = useState(locations[3]) // Hyderabad default
   const [selectedQuality, setSelectedQuality] = useState(qualityGrades[1]) // Grade A default

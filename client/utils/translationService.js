@@ -1,7 +1,11 @@
+import { CACHE_CONFIG } from './constants'
+
 class TranslationService {
   constructor() {
+    // Simple LRU cache implementation
     this.cache = new Map()
-    this.apiKey = process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY
+    this.maxCacheSize = CACHE_CONFIG.TRANSLATION_CACHE_SIZE
+    // API key is now handled server-side
     this.baseUrl = 'https://api-inference.huggingface.co/models'
   }
 
@@ -30,13 +34,20 @@ class TranslationService {
     return this.cache.get(key)
   }
 
-  // Store in cache
+  // Store in cache with LRU eviction
   setCachedTranslation(text, fromLang, toLang, translation) {
     const key = this.getCacheKey(text, fromLang, toLang)
+
+    // Remove if already exists (to move to end)
+    if (this.cache.has(key)) {
+      this.cache.delete(key)
+    }
+
+    // Add to end
     this.cache.set(key, translation)
-    
-    // Limit cache size
-    if (this.cache.size > 1000) {
+
+    // LRU eviction: remove oldest entries if over limit
+    if (this.cache.size > this.maxCacheSize) {
       const firstKey = this.cache.keys().next().value
       this.cache.delete(firstKey)
     }
@@ -137,7 +148,7 @@ class TranslationService {
       return translation
     } catch (error) {
       console.error('Translation error:', error)
-      
+
       // Return enhanced mock translation as fallback
       const mockTranslation = this.getMockTranslation(text, fromLang, toLang)
       this.setCachedTranslation(text, fromLang, toLang, mockTranslation)
@@ -148,7 +159,7 @@ class TranslationService {
   // Enhanced fallback for complete sentences
   getEnhancedFallback(text, fromLang, toLang) {
     const lowerText = text.toLowerCase().trim()
-    
+
     // Complete sentence translations for business scenarios
     const completeSentences = {
       'en_hi': {
@@ -189,7 +200,7 @@ class TranslationService {
     }
 
     try {
-      // Use server-side translation API to avoid CORS issues
+      // Use server-side translation API to avoid CORS issues and protect API keys
       const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001'
       const response = await fetch(`${serverUrl}/api/translate`, {
         method: 'POST',
@@ -212,7 +223,7 @@ class TranslationService {
 
     } catch (error) {
       console.error('Translation API error:', error)
-      
+
       // Fallback to mock translation
       return this.getMockTranslation(text, fromLang, toLang)
     }
@@ -312,7 +323,7 @@ class TranslationService {
 
     const translationKey = `${fromLang}_${toLang}`
     const lowerText = text.toLowerCase().trim()
-    
+
     // Direct match first
     if (mockTranslations[translationKey] && mockTranslations[translationKey][lowerText]) {
       return mockTranslations[translationKey][lowerText]
@@ -334,7 +345,7 @@ class TranslationService {
   // Generate smart contextual translation
   generateSmartTranslation(text, fromLang, toLang) {
     const lowerText = text.toLowerCase()
-    
+
     // Business context translations
     const businessPatterns = {
       'en_hi': {
@@ -363,7 +374,7 @@ class TranslationService {
 
     const patternKey = `${fromLang}_${toLang}`
     const patterns = businessPatterns[patternKey]
-    
+
     if (patterns) {
       for (const [key, func] of Object.entries(patterns)) {
         const result = func()
@@ -390,8 +401,8 @@ class TranslationService {
     const translations = await Promise.all(
       messages.map(async (message) => {
         const translation = await this.translate(
-          message.text, 
-          message.language, 
+          message.text,
+          message.language,
           toLang
         )
         return {

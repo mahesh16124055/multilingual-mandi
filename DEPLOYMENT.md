@@ -18,12 +18,23 @@ This guide covers various deployment options for the Multilingual Mandi applicat
 4. Deploy automatically
 
 **Environment Variables for Vercel:**
+> [!IMPORTANT]
+> Since `.env` files are not committed to Git for security, you MUST manually add these variables in your Vercel project settings.
+> Go to: **Settings** > **Environment Variables**
+
+Add the following keys:
 ```
+# Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-NEXT_PUBLIC_SOCKET_URL=your_backend_url
 SUPABASE_SERVICE_KEY=your_service_key
+
+# Backend Configuration
+NEXT_PUBLIC_SOCKET_URL=your_backend_url
+
+# AI Service Keys (Server-side only)
 HUGGINGFACE_API_KEY=your_hf_key
+GEMINI_API_KEY=your_gemini_key
 ```
 
 ### 2. Railway (Full-Stack)

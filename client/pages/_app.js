@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { useState, useEffect, createContext, useContext } from 'react'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { LanguageProvider } from '../contexts/LanguageContext'
+import logger from '../utils/logger'
 
 // Create Supabase client with proper error handling
 const createSupabaseClient = () => {
@@ -10,7 +11,7 @@ const createSupabaseClient = () => {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase environment variables not found. Using mock client.')
+    logger.warn('Supabase environment variables not found. Using mock client.')
     return {
       auth: {
         getSession: () => Promise.resolve({ data: { session: null } }),
@@ -52,7 +53,7 @@ export default function App({ Component, pageProps }) {
       setSession(session)
       setLoading(false)
     }).catch((error) => {
-      console.error('Error getting session:', error)
+      logger.error('Error getting session:', error)
       setLoading(false)
     })
 

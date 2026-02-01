@@ -1,16 +1,19 @@
 const axios = require('axios')
-const { HfInference } = require('@huggingface/inference')
 
 class TranslationService {
   constructor() {
     this.cache = new Map()
-    this.apiKey = process.env.HUGGINGFACE_API_KEY
+    this.huggingFaceApiKey = process.env.HUGGINGFACE_API_KEY
+    this.geminiApiKey = process.env.GEMINI_API_KEY
     this.baseUrl = 'https://router.huggingface.co/models'
+    // Gemini URL is dynamically constructed in translateWithGemini method
     
-    // Initialize Hugging Face client
-    if (this.apiKey) {
-      this.hf = new HfInference(this.apiKey)
-    }
+    // Prefer Gemini if available, fallback to Hugging Face
+    this.useGemini = !!this.geminiApiKey
+    
+    console.log(`🔧 Translation Service initialized:`)
+    console.log(`   - Gemini API: ${this.useGemini ? '✅ Available' : '❌ Not configured'}`)
+    console.log(`   - Hugging Face API: ${this.huggingFaceApiKey ? '✅ Available' : '❌ Not configured'}`)
     
     // Common agricultural and trading phrases
     this.commonPhrases = {
@@ -181,46 +184,139 @@ class TranslationService {
     return phrases[lowerText] || null
   }
 
-  // Translate using Hugging Face API
+  // Translate using APIs (Gemini preferred, Hugging Face fallback)
   async translateWithAPI(text, fromLang, toLang) {
-    if (!this.apiKey) {
-      console.log('No Hugging Face API key provided, using mock translation')
+    // Try Gemini API first if available
+    if (this.useGemini) {
+      const geminiResult = await this.translateWithGemini(text, fromLang, toLang)
+      if (geminiResult) {
+        return geminiResult
+      }
+    }
+
+    // Fallback to Hugging Face if Gemini fails or not available
+    if (this.huggingFaceApiKey) {
+      const hfResult = await this.translateWithHuggingFace(text, fromLang, toLang)
+      if (hfResult) {
+        return hfResult
+      }
+    }
+
+    // If both APIs fail, try enhanced patterns
+    const enhancedTranslation = this.translateWithEnhancedPatterns(text, fromLang, toLang)
+    if (enhancedTranslation) {
+      console.log(`🔄 APIs failed, using enhanced pattern: "${text}" -> "${enhancedTranslation}"`)
+      return enhancedTranslation
+    }
+
+    // Return null to use mock translations as final fallback
+    return null
+  }
+
+  // Translate using Google Gemini API
+  async translateWithGemini(text, fromLang, toLang) {
+    if (!this.geminiApiKey) {
       return null
     }
 
     try {
-      // For basic communication, let's use a simpler approach
-      // We'll enhance the common phrases and use pattern matching
+      const fromLanguage = this.getLanguageName(fromLang)
+      const toLanguage = this.getLanguageName(toLang)
       
-      // First, try to break down the text into known components
-      const enhancedTranslation = this.translateWithEnhancedPatterns(text, fromLang, toLang)
-      if (enhancedTranslation) {
-        console.log(`✅ Enhanced pattern translation: "${text}" -> "${enhancedTranslation}"`)
-        return enhancedTranslation
-      }
+      const prompt = `Please translate the following text completely from ${fromLanguage} to ${toLanguage}. Provide the full translation without any truncation:
 
-      // Try the Hugging Face API with error handling
-      if (this.hf) {
-        const modelName = this.getTranslationModel(fromLang, toLang)
-        if (modelName) {
-          console.log(`Attempting translation with model: ${modelName}`)
-          
-          const result = await this.hf.translation({
-            model: modelName,
-            inputs: text
-          })
+${text}`
 
-          if (result && result.translation_text) {
-            console.log(`✅ Translation successful: "${text}" -> "${result.translation_text}"`)
-            return result.translation_text
+      console.log(`🔄 Attempting Gemini API translation: ${fromLanguage} -> ${toLanguage}`)
+
+      // Try different model endpoints in order of preference
+      const modelEndpoints = [
+        'gemini-2.5-flash',
+        'gemini-2.5-flash-lite',
+        'gemini-2.5-pro',
+        'gemini-2.0-flash'
+      ]
+
+      for (const model of modelEndpoints) {
+        try {
+          const response = await axios.post(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.geminiApiKey}`,
+            {
+              contents: [{
+                parts: [{
+                  text: prompt
+                }]
+              }],
+              generationConfig: {
+                temperature: 0.1,
+                maxOutputTokens: 1000, // Further increased for complete translations
+                topP: 0.9,
+                topK: 40,
+                candidateCount: 1
+              }
+            },
+            {
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              timeout: 15000 // 15 second timeout
+            }
+          )
+
+          if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+            const translation = response.data.candidates[0].content.parts[0].text.trim()
+            // Remove quotes if present
+            const cleanTranslation = translation.replace(/^["']|["']$/g, '')
+            console.log(`✅ Gemini API translation successful with ${model}: "${text}" -> "${cleanTranslation}"`)
+            return cleanTranslation
           }
+        } catch (modelError) {
+          console.log(`🔄 Model ${model} failed: ${modelError.response?.status} - ${modelError.response?.data?.error?.message || modelError.message}`)
+          continue // Try next model
         }
       }
+
     } catch (error) {
-      console.log('🔄 API translation failed, using enhanced patterns')
+      console.log(`🔄 All Gemini models failed: ${error.message}`)
     }
 
-    // Return null to use enhanced mock translations
+    return null
+  }
+
+  // Translate using Hugging Face API (fallback)
+  async translateWithHuggingFace(text, fromLang, toLang) {
+    if (!this.huggingFaceApiKey) {
+      return null
+    }
+
+    try {
+      console.log(`🔄 Attempting Hugging Face API translation`)
+      
+      // Use a more reliable model
+      const response = await axios.post(
+        'https://api-inference.huggingface.co/models/Helsinki-NLP/opus-mt-en-hi',
+        {
+          inputs: text
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.huggingFaceApiKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000
+        }
+      )
+
+      if (response.data?.[0]?.translation_text) {
+        const translation = response.data[0].translation_text
+        console.log(`✅ Hugging Face API translation successful: "${text}" -> "${translation}"`)
+        return translation
+      }
+
+    } catch (error) {
+      console.log(`🔄 Hugging Face API failed: ${error.message}`)
+    }
+
     return null
   }
 

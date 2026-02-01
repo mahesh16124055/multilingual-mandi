@@ -17,6 +17,7 @@ import {
 import { useSupabase } from '../pages/_app'
 import PerfectFlag from './PerfectFlag'
 import { getTranslation } from '../utils/homeTranslations'
+import logger from '../utils/logger'
 
 export default function AuthModal({ 
   isOpen, 
@@ -149,7 +150,7 @@ export default function AuthModal({
         }, 1500)
       }
     } catch (error) {
-      console.error('Login error:', error)
+      logger.error('Login error:', error)
       if (error.message.includes('Invalid login credentials')) {
         setError('Invalid email or password. Please check your credentials and try again.')
       } else {
@@ -198,7 +199,7 @@ export default function AuthModal({
           })
 
         if (profileError) {
-          console.error('Profile creation error:', profileError)
+          logger.error('Profile creation error:', profileError)
           // Continue anyway, profile can be created later
         }
 
@@ -209,7 +210,7 @@ export default function AuthModal({
         }, 3000)
       }
     } catch (error) {
-      console.error('Signup error:', error)
+      logger.error('Signup error:', error)
       setError(error.message || 'Registration failed. Please try again.')
     } finally {
       setLoading(false)
@@ -239,7 +240,7 @@ export default function AuthModal({
         setSuccess('')
       }, 3000)
     } catch (error) {
-      console.error('Password reset error:', error)
+      logger.error('Password reset error:', error)
       setError(error.message || 'Failed to send reset email. Please try again.')
     } finally {
       setLoading(false)

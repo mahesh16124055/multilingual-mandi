@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  ShoppingCart, 
-  Search, 
-  Heart, 
+
+import {
+  ShoppingCart,
+  Search,
+  Heart,
   MapPin,
   Filter,
   Star,
@@ -14,21 +15,22 @@ import {
   Plus
 } from 'lucide-react'
 import { getTranslatedProductName, getTranslatedStatus, getTranslatedCategory, getTranslatedUI } from '../utils/dashboardTranslations'
+import logger from '../utils/logger'
 
-export default function BuyerDashboard({ 
-  selectedLanguage, 
-  messages, 
-  currentPrice, 
+export default function BuyerDashboard({
+  selectedLanguage,
+  messages,
+  currentPrice,
   userStats,
   onSearchProducts,
   onViewCart,
-  onViewOrders 
+  onViewOrders
 }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [quantities, setQuantities] = useState({}) // Track quantities for each product
   const [hoveredProduct, setHoveredProduct] = useState(null) // Track which product is being hovered
-  
+
   const [availableProducts, setAvailableProducts] = useState([
     {
       id: 1,
@@ -173,7 +175,7 @@ export default function BuyerDashboard({
   const filteredProducts = availableProducts.filter(product => {
     const translatedName = getTranslatedProductName(product.name, selectedLanguage)
     const matchesSearch = translatedName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         product.name.toLowerCase().includes(searchQuery.toLowerCase())
+      product.name.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory
     return matchesSearch && matchesCategory
   })
@@ -187,7 +189,7 @@ export default function BuyerDashboard({
 
   const handleAddToCart = (product) => {
     const quantity = quantities[product.id] || 1
-    console.log(`Adding ${quantity} units of ${product.name} to cart`)
+    logger.log(`Adding ${quantity} units of ${product.name} to cart`)
     // Here you would typically call an API or update global state
     // For now, we'll just show a visual feedback
     alert(`Added ${quantity} kg of ${product.name} to cart!`)
@@ -203,13 +205,13 @@ export default function BuyerDashboard({
               {selectedLanguage === 'hi' ? '🛒 खरीदार डैशबोर्ड' : '🛒 Buyer Dashboard'}
             </h2>
             <p className="text-gray-600">
-              {selectedLanguage === 'hi' 
+              {selectedLanguage === 'hi'
                 ? 'सर्वोत्तम उत्पाद खोजें और ऑर्डर करें'
                 : 'Discover and order the best products from local vendors'
               }
             </p>
           </div>
-          <button 
+          <button
             onClick={onViewCart}
             className="btn-secondary"
           >
@@ -256,7 +258,7 @@ export default function BuyerDashboard({
               className="input-modern pl-10"
             />
           </div>
-          <button 
+          <button
             onClick={onSearchProducts}
             className="btn-primary"
           >
@@ -271,11 +273,10 @@ export default function BuyerDashboard({
             <button
               key={category.id}
               onClick={() => setSelectedCategory(category.id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition-all duration-200 ${
-                selectedCategory === category.id
-                  ? 'bg-saffron text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition-all duration-200 ${selectedCategory === category.id
+                ? 'bg-saffron text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               <span>{category.icon}</span>
               <span className="font-medium">{category.name}</span>
@@ -304,15 +305,15 @@ export default function BuyerDashboard({
                   </span>
                 )}
               </div>
-              
+
               <h4 className="font-semibold text-gray-900 mb-2">
                 {getTranslatedProductName(product.name, selectedLanguage)}
               </h4>
-              
+
               <p className="text-sm text-gray-600 mb-2">
                 {selectedLanguage === 'hi' ? product.vendorHi : product.vendor}
               </p>
-              
+
               <div className="flex items-center space-x-2 mb-3">
                 <div className="flex items-center space-x-1">
                   <Star className="w-4 h-4 text-yellow-500 fill-current" />
@@ -324,7 +325,7 @@ export default function BuyerDashboard({
                   <span>{product.location}</span>
                 </div>
               </div>
-              
+
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <span className="text-lg font-bold text-gray-900">{product.price}</span>
@@ -332,11 +333,11 @@ export default function BuyerDashboard({
                     <span className="text-sm text-gray-500 line-through ml-2">{product.originalPrice}</span>
                   )}
                 </div>
-                
+
                 {/* Quantity controls - simple and always visible */}
                 {product.inStock && (
                   <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
-                    <button 
+                    <button
                       onClick={() => handleQuantityChange(product.id, -1)}
                       className="w-8 h-8 flex items-center justify-center rounded-md bg-white shadow-sm hover:bg-gray-50 transition-colors font-semibold text-gray-700"
                     >
@@ -345,7 +346,7 @@ export default function BuyerDashboard({
                     <span className="w-8 text-center font-bold text-gray-800">
                       {quantities[product.id] || 1}
                     </span>
-                    <button 
+                    <button
                       onClick={() => handleQuantityChange(product.id, 1)}
                       className="w-8 h-8 flex items-center justify-center rounded-md bg-white shadow-sm hover:bg-gray-50 transition-colors font-semibold text-gray-700"
                     >
@@ -354,27 +355,26 @@ export default function BuyerDashboard({
                   </div>
                 )}
               </div>
-              
+
               {/* Cart buttons - simple and always visible */}
               <div className="flex space-x-2">
-                <button 
+                <button
                   onClick={() => handleAddToCart(product)}
-                  className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center space-x-2 ${
-                    product.inStock
-                      ? 'bg-orange-400 text-white hover:bg-orange-600 shadow-md hover:shadow-lg'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                  className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center space-x-2 ${product.inStock
+                    ? 'bg-orange-400 text-white hover:bg-orange-600 shadow-md hover:shadow-lg'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
                   disabled={!product.inStock}
                 >
                   <ShoppingCart className="w-4 h-4" />
                   <span>{getTranslatedUI('Add to Cart', selectedLanguage)}</span>
                 </button>
-                
+
                 <button className="p-3 border-2 border-gray-300 rounded-lg hover:border-pink-400 hover:bg-pink-50 transition-all duration-200">
                   <Heart className="w-5 h-5 text-gray-600 hover:text-pink-500 transition-colors" />
                 </button>
               </div>
-              
+
               {/* Remove the overlay effect */}
             </motion.div>
           ))}
@@ -388,7 +388,7 @@ export default function BuyerDashboard({
             <h3 className="text-xl font-bold text-gray-900">
               {selectedLanguage === 'hi' ? '📦 हाल के ऑर्डर' : '📦 Recent Orders'}
             </h3>
-            <button 
+            <button
               onClick={onViewOrders}
               className="btn-outline text-sm"
             >
@@ -417,13 +417,12 @@ export default function BuyerDashboard({
                 </div>
                 <div className="text-right">
                   <div className="font-bold text-gray-900 mb-1">{order.amount}</div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    order.status === 'Delivered' 
-                      ? 'bg-green-100 text-green-800'
-                      : order.status === 'In Transit'
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${order.status === 'Delivered'
+                    ? 'bg-green-100 text-green-800'
+                    : order.status === 'In Transit'
                       ? 'bg-blue-100 text-blue-800'
                       : 'bg-yellow-100 text-yellow-800'
-                  }`}>
+                    }`}>
                     {getTranslatedStatus(order.status, selectedLanguage)}
                   </span>
                   {order.rating && (

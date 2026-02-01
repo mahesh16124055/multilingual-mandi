@@ -2,33 +2,70 @@ const axios = require('axios')
 
 class PriceService {
   constructor() {
+    // Base prices - these should be fetched from database in production
+    // For now, using environment variables with fallbacks
     this.basePrice = {
-      'rice': 25,
-      'wheat': 22,
-      'tomato': 30,
-      'onion': 18,
-      'potato': 15,
-      'sugarcane': 35,
-      'cotton': 45,
-      'soybean': 40
+      'rice': parseInt(process.env.BASE_PRICE_RICE) || 25,
+      'wheat': parseInt(process.env.BASE_PRICE_WHEAT) || 22,
+      'tomato': parseInt(process.env.BASE_PRICE_TOMATO) || 30,
+      'onion': parseInt(process.env.BASE_PRICE_ONION) || 18,
+      'potato': parseInt(process.env.BASE_PRICE_POTATO) || 15,
+      'sugarcane': parseInt(process.env.BASE_PRICE_SUGARCANE) || 35,
+      'cotton': parseInt(process.env.BASE_PRICE_COTTON) || 45,
+      'soybean': parseInt(process.env.BASE_PRICE_SOYBEAN) || 40,
+      'maize': parseInt(process.env.BASE_PRICE_MAIZE) || 20,
+      'bajra': parseInt(process.env.BASE_PRICE_BAJRA) || 18,
+      'jowar': parseInt(process.env.BASE_PRICE_JOWAR) || 19,
+      'groundnut': parseInt(process.env.BASE_PRICE_GROUNDNUT) || 55,
+      'mustard': parseInt(process.env.BASE_PRICE_MUSTARD) || 48,
+      'sunflower': parseInt(process.env.BASE_PRICE_SUNFLOWER) || 52
     }
     
+    // Location multipliers - should be fetched from database
     this.locationMultipliers = {
-      'delhi': 1.2,
-      'mumbai': 1.3,
-      'bangalore': 1.1,
-      'hyderabad': 1.0,
-      'chennai': 1.1,
-      'kolkata': 0.9,
-      'pune': 1.15,
-      'ahmedabad': 1.05
+      'delhi': parseFloat(process.env.LOCATION_MULTIPLIER_DELHI) || 1.2,
+      'mumbai': parseFloat(process.env.LOCATION_MULTIPLIER_MUMBAI) || 1.3,
+      'bangalore': parseFloat(process.env.LOCATION_MULTIPLIER_BANGALORE) || 1.1,
+      'hyderabad': parseFloat(process.env.LOCATION_MULTIPLIER_HYDERABAD) || 1.0,
+      'chennai': parseFloat(process.env.LOCATION_MULTIPLIER_CHENNAI) || 1.1,
+      'kolkata': parseFloat(process.env.LOCATION_MULTIPLIER_KOLKATA) || 0.9,
+      'pune': parseFloat(process.env.LOCATION_MULTIPLIER_PUNE) || 1.15,
+      'ahmedabad': parseFloat(process.env.LOCATION_MULTIPLIER_AHMEDABAD) || 1.05,
+      'jaipur': parseFloat(process.env.LOCATION_MULTIPLIER_JAIPUR) || 1.0,
+      'lucknow': parseFloat(process.env.LOCATION_MULTIPLIER_LUCKNOW) || 0.95,
+      'bhopal': parseFloat(process.env.LOCATION_MULTIPLIER_BHOPAL) || 0.9,
+      'patna': parseFloat(process.env.LOCATION_MULTIPLIER_PATNA) || 0.85,
+      'chandigarh': parseFloat(process.env.LOCATION_MULTIPLIER_CHANDIGARH) || 1.1,
+      'indore': parseFloat(process.env.LOCATION_MULTIPLIER_INDORE) || 0.95,
+      'nagpur': parseFloat(process.env.LOCATION_MULTIPLIER_NAGPUR) || 0.9
     }
     
+    // Quality multipliers - configurable via environment
     this.qualityMultipliers = {
-      'premium': 1.3,
-      'grade-a': 1.1,
-      'grade-b': 1.0,
-      'grade-c': 0.85
+      'premium': parseFloat(process.env.QUALITY_MULTIPLIER_PREMIUM) || 1.3,
+      'grade-a': parseFloat(process.env.QUALITY_MULTIPLIER_GRADE_A) || 1.1,
+      'grade-b': parseFloat(process.env.QUALITY_MULTIPLIER_GRADE_B) || 1.0,
+      'grade-c': parseFloat(process.env.QUALITY_MULTIPLIER_GRADE_C) || 0.85,
+      'export': parseFloat(process.env.QUALITY_MULTIPLIER_EXPORT) || 1.4,
+      'organic': parseFloat(process.env.QUALITY_MULTIPLIER_ORGANIC) || 1.25
+    }
+
+    // Initialize with real market data if available
+    this.initializeMarketData()
+  }
+
+  // Initialize market data from external APIs
+  async initializeMarketData() {
+    try {
+      // In production, fetch from Agmarknet API
+      if (process.env.AGMARKNET_API_KEY) {
+        console.log('🌾 Initializing real market data from Agmarknet...')
+        // await this.fetchAgmarknetData()
+      } else {
+        console.log('📊 Using mock market data (set AGMARKNET_API_KEY for real data)')
+      }
+    } catch (error) {
+      console.error('Market data initialization error:', error)
     }
   }
 
